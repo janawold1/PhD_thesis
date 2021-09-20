@@ -5,8 +5,7 @@
 mref=/kakapo-data/References/kakapo_no_Wchromosome.fa
 fref=/kakapo-data/References/kakapo_full_ref.fa
 mdata=/kakapo-data/bowtie_male/
-fdata=/kakapo-data/bowtie_femadata
-markdup/
+fdata=/kakapo-data/bowtie_female/
 for female in ${fdata}bam/*.bam
     do
         base=$(basename ${female} .bam)
