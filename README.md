@@ -1,4 +1,4 @@
-# kakapo_short-read_SV_discovery
+# Chapter 4: Kākāpō short-read SV discovery
 Here are the steps I took to trial different strategies for SV discovery using illumina sequence data. The raw fasta files were preprocessed, but averaged around 25x sequence coverage. These reads were then down-sampled to approximately 10x sequence coverage for a second trial set (bbmap). Down-sampling was conducted in triplicate to assess variability in reads retained for alignment. 
 
 ## Alignment
