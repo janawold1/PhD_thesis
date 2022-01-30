@@ -158,17 +158,26 @@ for samps in ${out}sample_batches/sample_batch*.tsv
         --output-prefix ${out}batch_filtered/${base}/ --threads 24 &
 done
 wait
-for samps in ${out}sample_batches/sample_batch*.tsv
+for samps in ${out}bayestyper/joint_filtered/sample_batch*
     do
-    base=$(basename ${samps} .tsv)
-    bayesTyper genotype --variant-clusters-file --cluster-data-dir --samples-file ${samps} \
-        --genome-file $chr_ref --decoy-file $decoy_ref --output-prefix ${out}bayestyper/joint_filtered/05_${batch}_genotypes \
-        --threads 24 --chromosome-ploidy-file ${out}bayestyper/ploidy.tsv --gzip-output
-    bayesTyper genotype --variant-clusters-file --cluster-data-dir --samples-file ${samps} \
-        --genome-file $chr_ref --decoy-file $decoy_ref --output-prefix ${out}bayestyper/batch_filtered/05_${batch}_genotypes \
+    base=$(basename ${samps})
+    bayesTyper genotype --variant-clusters-file ${samps}/${base}_unit_1/variant_clusters.bin \
+        --cluster-data-dir ${samps}/${base}_cluster_data/ \
+        --samples-file ${out}bayestyper/sample_batches/${base}.tsv \
+        --genome-file $chr_ref --decoy-file $decoy_ref \
+        --output-prefix ${samps}/${base}_genotypes \
         --threads 24 --chromosome-ploidy-file ${out}bayestyper/ploidy.tsv --gzip-output
 done
-
+for samps in ${out}bayestyper/batch_filtered/sample_batch*
+    do
+    base=$(basename ${samps})
+    bayesTyper genotype --variant-clusters-file ${samps}/${base}_unit_1/variant_clusters.bin \
+        --cluster-data-dir ${samps}/${base}_cluster_data/ \
+        --samples-file ${out}bayestyper/sample_batches/${base}.tsv \
+        --genome-file $chr_ref --decoy-file $decoy_ref \
+        --output-prefix ${samps}/${base}_genotypes \
+        --threads 24 --chromosome-ploidy-file ${out}bayestyper/ploidy.tsv --gzip-output
+done
 ##################################################################################################################################
 # Lineage Comparisons
 mkdir -p ${out}lineage_comparisons

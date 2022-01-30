@@ -5,8 +5,8 @@
 #########################################################################################
 mref=/kakapo-data/References/kakapo_no_Wchromosome.fa
 fref=/kakapo-data/References/kakapo_full_ref.fa
-mdata=/kakapo-data/bwa_male/
-fdata=/kakapo-data/bwa_female/
+mdata=/kakapo-data/bwa_male/bam/
+fdata=/kakapo-data/bwa_female/bam/
 mstat=/kakapo-data/bwa_male/stat/
 fstat=/kakapo-data/bwa_female/stat/
 mout=/kakapo-data/bwa_male/markdup/
@@ -68,4 +68,4 @@ while read -r mchrom
         mdepth=$(samtools depth -r ${mchrom}: ${male} | awk 'BEGIN {FS = "\t"}; {sum += $3} END {print sum/NR}')
         echo "${base},${mchrom},${mdepth},male" >> bwa_depth.csv
     done &
-done < kakapo_chromsome_scaffolds.csv
+done < kakapo_chromosome_scaffolds.csv

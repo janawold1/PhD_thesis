@@ -7,5 +7,5 @@ Brief summary of tara iti chapter
 ## Chapter 4: Structural Variant Discovery in kākāpō125+ Data set
 Reads were aligned to the kākāpō reference genome (VGP) using bwa. The W sex chromosome (present in females) was removed prior to alignments of males as the W is highly repetitive, and may contain regions that would result in misalignment of reads.
 
-## Chapter 5: Towards a pangenome for enhanced SV discovery and genotyping in kākāpō
+## Chapter 5: Towards a kākāpō pangenome for enhanced SV discovery and genotyping
 Brief summary of pangenome chapter

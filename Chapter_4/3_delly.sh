@@ -56,7 +56,7 @@ for j in {01..11}
 done
 wait
 
-bcftools merge -m id -O b -o ${out}01_bwa_delly_genotypes.bcf  --threads 24 ${out}genotype/*geno.bcf # Used for unfiltered SV stats 
+bcftools merge -m id -O b -o ${out}01_bwa_delly_genotypes.bcf --threads 24 ${out}genotype/*geno.bcf # Used for unfiltered SV stats 
 #bcftools merge -m id -O b -o ${out}bwa_delly_minsize_genotypes.bcf --threads 24 ${out}genotype/*.minsize.bcf
 tabix ${out}01_bwa_delly_genotypes.bcf
 #tabix ${out}bwa_delly_minsize_genotypes.bcf
