@@ -147,11 +147,17 @@ for samps in ${out}sample_batches/sample_batch*.tsv
     base=$(basename ${samps} .tsv)
     bayesTyper cluster --variant-file ${out}joint_filtered/05_joint_filtered_mantaDV_candidates.vcf.gz \
         --samples-file ${samps} --genome-file ${chr_ref} --decoy-file ${decoy_ref} \
-        --output-prefix ${out}joint_filtered/${base}/ --threads 24
+        --output-prefix ${out}joint_filtered/${base}/ --threads 24 &
+done
+wait
+for samps in ${out}sample_batches/sample_batch*.tsv
+    do
+    base=$(basename ${samps} .tsv)
     bayesTyper cluster --variant-file ${out}batch_filtered/05_batch_filtered_mantaDV_candidates.vcf.gz \
         --samples-file ${samps} --genome-file ${chr_ref} --decoy-file ${decoy_ref} \
-        --output-prefix ${out}batch_filtered/${base}/ --threads 24
+        --output-prefix ${out}batch_filtered/${base}/ --threads 24 &
 done
+wait
 for samps in ${out}sample_batches/sample_batch*.tsv
     do
     base=$(basename ${samps} .tsv)
