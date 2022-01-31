@@ -1,2 +1,2 @@
-# Chapter 3: Austrailian and New Zealand fairy tern population genetics
+# Chapter 3: Australian and New Zealand fairy tern population genetics
 Scripts for calling SNPs and measuring relative levels of inbreeding and differentiation between 2 subspecies of fairy tern, the Australian fairy tern (*Sterna nereis nereis*) and tara iti (*Sterna nereis davisae*).

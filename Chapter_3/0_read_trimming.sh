@@ -7,8 +7,8 @@
 
 # First began with 2 colour chemistry specific trimmming.
 raw=/data/tara_iti_shortreads/raw_reads/2021_august/
-trim_out=/data/tara_iti_shortreads/trimmed_reads/lib2/
-reports=/data/tara_iti_shortreads/trim_reports/lib2/
+trim_out=/data/tara_iti_shortreads/trimmed_reads2/lib2/
+reports=/data/tara_iti_shortreads/trim_reports2/lib2/
 
 for samp in ${raw}*R1.fastq.gz
 do
@@ -31,16 +31,5 @@ trim_galore --paired \
     ${raw}${base}_R1.fastq.gz \
     ${raw}${base}_R2.fastq.gz
 mv ${trim_out}*.txt ${reports}
+mv ${trim_out}*fastqc* ${reports}
 done
-
-for fq in ${data}*_R1.fq.gz
-do
-	base=$(basename ${fq} _R1.fq.gz)
-	echo "Running fastqc for ${base} trimmed reads..."
-	fastqc -o ${reports} ${fq} &
-	fastqc -o ${reports} ${trim_out}${base}_R2.fq.gz &
-	fastqc -o ${reports} ${trim_out}${base}_R1_unpaired.fq.gz &
-	fastqc -o ${reports} ${trim_out}${base}_R2_unpaired.fq.gz
-	wait
-done
-
