@@ -1,14 +1,16 @@
-#!/bin/bash -e
-##################################################################################################################################
-# Running the Delly SV discovery and genotyping pipeline. Delly is a programme for structural variant discovery with paired-end
-# sequence data. Delly requires sorted bam files with marked duplicates (as in the script 2_align_stat.sh) as input. 
-##################################################################################################################################
+
+# Delly Overview
+Running the Delly SV discovery and genotyping pipeline. Delly is a programme for structural variant discovery with paired-end sequence data. To begin with, input BAM files had duplicates removed and sorted as in the script 2_align_stat.sh. Then global variable were set to:
+```
 male=/kakapo-data/bwa/bwa_male/markdup/
 female=/kakapo-data/bwa/bwa_female/markdup/
 out=/kakapo-data/bwa/delly/markdup/
 ref=/kakapo-data/References/kakapo_full_ref.fa
 exclude=/kakapo-data/metadata/kakapo_SVexcluded_scaffolds.bed
-
+trio=/kakapo-data/metadata/sample_trios.csv
+```
+### SV calling
+```
 printf "\nRunning Delly...\n"
 for i in {01..14}
        do
@@ -32,7 +34,9 @@ wait
 printf "\nMerging SV sites...\n"
 delly merge -o ${out}kakapo_bwa_delly_sites.bcf ${out}SV_calls_male/*.bcf ${out}SV_calls_female/*.bcf
 delly merge -o ${out}kakapo_bwa_delly_minSize300bp_sites.bcf -m 300 ${out}SV_calls_male/*.bcf ${out}SV_calls_female/*.bcf
-
+```
+### SV genotyping
+```
 printf "\nRunning Delly genotyping...\n"
 for i in {01..14}
        do
@@ -55,7 +59,9 @@ for j in {01..11}
         done &
 done
 wait
-
+```
+### SV filtering 
+```
 bcftools merge -m id -O b -o ${out}01_bwa_delly_genotypes.bcf --threads 24 ${out}genotype/*geno.bcf # Used for unfiltered SV stats 
 #bcftools merge -m id -O b -o ${out}bwa_delly_minsize_genotypes.bcf --threads 24 ${out}genotype/*.minsize.bcf
 tabix ${out}01_bwa_delly_genotypes.bcf
@@ -80,9 +86,10 @@ bcftools view -i '(N_PASS(FT!="PASS") / N_PASS(GT!="RR")) >=  0.8' -O v -o 08_de
 bcftools query -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\tdelly_unfiltered\n' ${out}01_bwa_delly_genotypes.bcf > ${out}delly_summary.tsv
 bcftools query -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\tdelly_SVfiltered\n' ${out}07_delly_SVfilter.vcf >> ${out}delly_summary.tsv
 bcftools query -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\tdelly_genofiltered\n' ${out}08_delly_genofilter.vcf >> ${out}delly_summary.tsv
-##################################################################################################################################
-# Now for trio filters. 
-##################################################################################################################################
+```
+### Mendelian Inheritance tests with family trios
+
+```
 bcftools +mendelian -m a -T ${trio} -O v -o ${out}09_delly_SVfilter_trio.vcf \
     ${out}07_delly_SVfilter.vcf
 bcftools +mendelian -m a -T ${trio} -O v -o ${out}10_delly_genofilter_trio.vcf \
@@ -105,10 +112,10 @@ bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.1' -f '%CHROM\t%POS\t%INFO/END\
     ${out}10_delly_genofilter_trio.vcf >> ${out}delly_mendel.tsv
 bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.2' -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\t<=0.2_fail_delly_genofilter\n' \
     ${out}10_delly_genofilter_trio.vcf >> ${out}delly_mendel.tsv
+```
+### Lineage Comparisons
 
-##################################################################################################################################
-# Lineage Comparisons
-##################################################################################################################################
+```
 mkdir -p ${out}lineage_comparisons
 
 bcftools view -s Richard_Henry ${out}10_delly_genofilter_trio.vcf | bcftools view -i 'GT!="RR" & GT!="mis"' -O v -o ${out}lineage_comparisons/RH_variants.vcf
@@ -120,8 +127,9 @@ tabix ${out}lineage_comparisons/SI_variants.vcf
 bcftools isec ${out}lineage_comparisons/RH_variants.bcf \
     ${out}lineage_comparisons/SI_variants.bcf \
     -p ${out}lineage_comparisons/
-
-# Summarising numbers of SVs per individual
+```
+### Summarising numbers of SVs per individual
+```
 bcftools view -h ${out}08_bwa_delly_final_trio.vcf | grep CHROM | tr "\t" "\n" | tail -n 169 > ${out}samples.txt
 bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0000.vcf > ${out}lineage_comparisons/Fiordland_sites.txt
 bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0001.vcf > ${out}lineage_comparisons/SI_sites.txt
@@ -151,11 +159,10 @@ while read -r line
     echo "Assigning $gen generation to $indiv"
     grep "^$indiv" ${out}delly_indiv_counts.tsv | awk -v var="$gen" '{print $0"\t"var}' >> ${out}delly_generations.tsv
 done < /kakapo-data/metadata/generations.tsv
-
-##################################################################################################################################
-# Preparing data for R markdown
-##################################################################################################################################
-# Converting SV types into long-form names and updating NCBI scaffold names to chromosome
+```
+## Preparing data for R markdown
+### Converting SV types into long-form names and updating NCBI scaffold names to chromosome
+```
 while read -r line
     do
     ncbi=$(echo $line | awk '{print $1}')
@@ -163,7 +170,9 @@ while read -r line
     echo Converting $ncbi to $chr
     sed -i "s/$ncbi/$chr/g" ${out}delly_summary.tsv
 done < ${out}convert_chr.txt 
-# Adding chromosome size to summary file
+```
+### Adding chromosome size to summary file
+```
 while read -r line
     do
     chr=$(echo $line | awk '{print $1}')
@@ -172,3 +181,4 @@ while read -r line
     grep "^${chr}" ${out}delly_summary.tsv | awk -v var=$size '{print $0"\t"var}' >> ${out}delly_size
 done < ${out}chrom_sizes 
 mv ${out}delly_size ${out}delly_summary.tsv
+```
