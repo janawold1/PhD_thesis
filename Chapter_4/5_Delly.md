@@ -11,6 +11,7 @@ target=/data/metadata/common_tern_autosomes.bed
 TI=/data/metadata/TI_samples.tsv
 AU=/data/metadata/AU_samples.tsv
 ```
+## SV Discovery
 Putative SV sites were identified as below.
 ```
 printf "\nRunning Delly...\n"
@@ -23,46 +24,34 @@ time for i in {01..09}
 		delly call -g ${ref} -o ${out}SVcalls/${base}.bcf  ${bam}
 	done &
 done
+wait
+delly merge -o ${out}01_fairy_tern_minSize300bp_sites.bcf -m 300 SVcalls/QC_pass/*.bcf
 ```
-Sites were then merged, with a minimum size threshold of 300bp. And individuals genotyped. 
+# SV genotyping
+Sites were then merged, with a minimum size threshold of 300bp and individuals genotyped. 
 ```
-delly merge -o ${out}fairy_tern_delly_sites_minsize.bcf --minsize 300 ${out}SVcalls/*.bcf
 printf "\nRunning Delly genotyping...\n"
-time for i in {01..09}
-	do
-	for bam in ${work}batch${i}/*_markdup.bam
-		do
-		base=$(basename ${bam} .bam)
-		printf "\nRunning Delly genotyping for ${base}..."
-		delly call -g ${ref} -v ${out}fairy_tern_delly_sites_minsize.bcf -o ${out}genotypes/${base}.minsize.geno.bcf ${bam}
-	done &
+while read -r line
+    do
+    id=$(echo $line | tr "/" " " | awk '{print $5}' | sed 's/_nodup.bam//')
+    printf "\nRunning Delly genotyping for ${mbase}..."
+    delly call -g ${ref} -v ${out}01_fairy_tern_minSize300bp_sites.bcf -o ${out}genotypes/${mbase}.geno.minsize.bcf ${line}
 done
 ```
+## SV filtering
 Finally, all genotyped individuals were merged and calls were filtered with Delly's germline setting (somatic filtering works with tumour/normal pairs). Deletions were filtered for those that passed all record level filters in each population. Finally, the interesection between the two populations was used to identify private deletions. 
 ```
-bcftools merge -m id -O b -o ${out}fairy_tern_delly_minsize_genotypes.bcf \
-	${out}genotypes/*.minsize.geno.bcf
+bcftools merge -m id -O b -o ${out}02_fairy_tern_genotypes.bcf ${out}genotypes/*.bcf
+bcftools index ${out}02_fairy_tern_genotypes.bcf
 
-delly filter -f germline -o ${out}fairy_tern_delly_minsize_genotypes_filtered.bcf \
-	${out}delly_minsize_genotypes.bcf
+delly filter -f germline -o ${out}03_fairy_tern_germline_filtered.bcf \
+	${out}02_fairy_tern_genotypes.bcf
 
-for group in /data/metadata/*_samples.tsv
-	do
-	pop=$(basename $group _samples.tsv)
-	echo "Identifying fixed deletions for $pop..."
-	if [[ $pop == TI]]
-		then
-		bcftools view -T $target -S $group -i 'N-\
-			-O z -o ${out}${pop}_fixed_DEL.vcf.gz \
-			${out}delly_minsize_genotypes.bcf
-		tabix ${out}${pop}_fixed_DEL.vcf.gz
-		else
-		bcftools view -T $target -S $group -i 'N_PASS(GT=="AA")>=19 & FILTER == "PASS"' \
-			-O z -o ${out}${pop}_fixed_DEL.vcf.gz \
-			${out}delly_minsize_genotypes.bcf
-		tabix ${out}${pop}_fixed_DEL.vcf.gz
-	fi
-done
+bcftools view -S ../smoove/AU_samples.tsv -i 'FILTER=="PASS" & SVTYPE == "DEL"' 03_fairy_tern_germline_filtered.bcf | bcftools view -i 'N_PASS(GT == "AA") = 15' -O z -o AU_filtered.vcf.gz
+
+bcftools view -S ../smoove/TI_samples.tsv -i 'FILTER=="PASS" & SVTYPE == "DEL"' 03_fairy_tern_germline_filtered.bcf | bcftools view -i 'N_PASS(GT == "AA") = 11' -O z -o TI_filtered.vcf.gz
+
+tabix ${out}${pop}_fixed_DEL.vcf.gz
 
 bcftools isec ${out}TI_fixed_DEL.vcf.gz ${out}AU_fixed_DEL.vcf.gz -p ${out}
 ```

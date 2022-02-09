@@ -46,22 +46,22 @@ for POP in AU TI global
         if [[ "$POP" == AU ]]
                 then
                 echo "Estimating inbreeding for $POP...."
-                angsd -P 24 -b ${POP}.bamlist -ref ${ref} -out ${data}inbreeding/${POP} \
+                angsd -P 4 -b ${data}${POP}.bamlist -ref ${ref} -out ${data}inbreeding/${POP} \
                 	-uniqueOnly 1 -remove_bads 1 -only_proper_pairs 1 -trim 0 -C 50 -baq 1 \
-                	-minMapQ 20 -minQ 20 -minInd 14 -setMinDepth 5 -setMaxDepth 150 -doCounts 1 \
+                	-minMapQ 20 -minQ 20 -minInd 15 -setMinDepthInd 5 -setMaxDepthInd 150 -doCounts 1 \
         	        -GL 1 -doMajorMinor 1 -doMaf 1 -skipTriallelic 1 \
         	        -doGlf 3 -SNP_pval 1e-3
         elif [[ $POP == TI ]]
                 then
-                angsd -P 24 -b ${POP}.bamlist -ref ${ref} -out ${data}inbreeding/${POP} \
+                angsd -P 4 -b ${data}${POP}.bamlist -ref ${ref} -out ${data}inbreeding/${POP} \
                         -uniqueOnly 1 -remove_bads 1 -only_proper_pairs 1 -trim 0 -C 50 -baq 1 \
-                        -minMapQ 20 -minQ 20 -minInd 10 -setMinDepth 5 -setMaxDepth 150 -doCounts 1 \
+                        -minMapQ 20 -minQ 20 -minInd 11 -setMinDepthInd 5 -setMaxDepthInd 150 -doCounts 1 \
                         -GL 1 -doMajorMinor 1 -doMaf 1 -skipTriallelic 1 \
                         -doGlf 3 -SNP_pval 1e-3
         else
-                angsd -P 24 -b ${POP}.bamlist -ref ${ref} -out ${data}inbreeding/${POP} \
+                angsd -P 4 -b ${data}${POP}.bamlist -ref ${ref} -out ${data}inbreeding/${POP} \
         	        -uniqueOnly 1 -remove_bads 1 -only_proper_pairs 1 -trim 0 -C 50 -baq 1 \
-        	        -minMapQ 20 -minQ 20 -minInd 23 -setMinDepth 5 -setMaxDepth 150 -doCounts 1 \
+        	        -minMapQ 20 -minQ 20 -minInd 26 -setMinDepthInd 5 -setMaxDepthInd 150 -doCounts 1 \
                         -GL 1 -doMajorMinor 1 -doMaf 1 -skipTriallelic 1 \
                         -doGlf 3 -SNP_pval 1e-3
         fi &
@@ -70,10 +70,10 @@ wait
 ```
 These genotype liklihoods were then used as input for [ngsF](https://github.com/fgvieira/ngsF) from the [ngsTools](https://github.com/mfumagalli/ngsTools) suite.
 
-Although genotype likelihoods were estimated for the 'global' data set, inbreeding coefficients were estimated for the AU and TI populations independently.
+Although genotype likelihoods were estimated for the 'global' data set, these were used to in PCA and MDS analyses only. Whereas inbreeding coefficients independently estimated for the AU and TI populations were used to calculate summary statistics.
 
 ```
-for POP in AU TI
+for POP in AU TI global
         do
         nsamp=$(wc -l ${data}${POP}.bamlist | awk '{print $1}')
         nsites=$(zcat ${data}inbreeding/${POP.mafs.gz | tail -n+2 | wc -l)
@@ -85,22 +85,29 @@ wait
 ```
 These initial inbreeding coefficients were then used to inform the posterior probabilities for genotype and allele frequency as below. Here, [ANGSD]() was used to estimate the site frequency spectrum (SFS), which is the proportion of site allele frequencies. Since reads were aligned to the [Common tern](https://www.ncbi.nlm.nih.gov/genome/?term=common+tern) reference genome, the ancestral state could not be used to estimate an unfolded SFS, limiting inferences about population demography or selective events. 
 ```
-for POP in AU TI global
+for POP in AU TI
         do
         if [[ "$POP" == AU ]]
                 then
                 echo "Estimating inbreeding for $POP...."
-                angsd -P 24 -b ${POP}.bamlist -ref ${ref} -anc ${ref} -out ${data}inbreeding/${POP}.inbred \
+                angsd -P 224 -b ${data}${POP}.bamlist -ref ${ref} -anc ${ref} -out ${data}SFS/${POP}.inbred_corr \
                 	-uniqueOnly 1 -remove_bads 1 -only_proper_pairs 1 -trim 0 -C 50 -baq 1 \
                 	-minMapQ 20 -minQ 20 -minInd 15 -setMinDepth 5 -setMaxDepth 150 -doCounts 1 \
         	        -GL 1 -doMajorMinor 1 -doMaf -1 -skipTriallelic 1 \
         	        -SNP_pval 1e-3 -doGeno 20 -doPost 1 -doSaf 2 -indF ${data}inbreeding/${POP}.indF
-        else
-                angsd -P 24 -b ${POP}.bamlist -ref ${ref} -anc ${ref} -out ${data}inbreeding/${POP}.inbred \
+        elif [[ "$POP" == TI ]]
+                then
+                angsd -P 24 -b ${data}${POP}.bamlist -ref ${ref} -anc ${ref} -out ${data}SFS/${POP}.inbred_corr \
                         -uniqueOnly 1 -remove_bads 1 -only_proper_pairs 1 -trim 0 -C 50 -baq 1 \
                         -minMapQ 20 -minQ 20 -minInd 11 -setMinDepth 5 -setMaxDepth 150 -doCounts 1 \
                         -GL 1 -doMajorMinor 1 -doMaf -1 -skipTriallelic 1 \
                         -SNP_pval 1e-3 -doGeno 20 -doPost 1 -doSaf 2 -indF ${data}inbreeding/${POP}.indF
+        else
+                angsd -P 24 -b ${data}${POP}.bamlist -ref ${ref} -out ${data}population_structure/${POP}.inbred_corr \
+                        -uniqueOnly 1 -remove_bads 1 -only_proper_pairs 1 -trim 0 -C 50 -baq 1 \
+                        -minMapQ 20 -minQ 20 -minInd 26 -setMinDepth 5 -setMaxDepth 150 -doCounts 1 \
+                        -GL 1 -doMajorMinor 1 -doMaf 1 -skipTriallelic 1 -SNP_pval 1e-3 -doGeno 40 -doHWE 1 \
+                        -doPost 1 -indF ${data}inbreeding/${POP}.indF
         fi &
 done
 wait
@@ -110,40 +117,79 @@ Once the posterior probabilities (informed by inbreeding coefficients) of sample
 
 Initially examined the output with:
 ```
-realSFS print ${data}inbreeding/AU.saf.idx | less -S
-realSFS print ${data}inbreeding/TI.saf.idx | less -S
+realSFS print ${data}SFS/AU.saf.idx | less -S
+realSFS print ${data}SFS/TI.saf.idx | less -S
 ```
 And the overall SFS was estimated and plotted as per:
 ```
 for POP in AU TI
         do
         echo "Estimating SFS for $POP..."
-        realSFS ${data}inbreeding/${POP}.saf.idx > ${data}SFS/${POP}.sfs 
+        realSFS ${data}SFS/${POP}.saf.idx > ${data}SFS/${POP}.sfs 
 done
 wait
-
+```
+Then the folded SFS was graphed using the ```AU-TI 1``` option as per below. If an ancestral genome was included in the earlier run of ANGSD, then the unfolded SFS could be graphed by changing the this option to ```AU-TI 0``` 
+```
 Rscript ${ngstools}Scripts/plotSFS.R ${data}SFS/AU.sfs-${data}SFS/TI.sfs AU-TI 1 ${data}SFS/ALL.sfs.pdf
 ```
-# Summary Statistics 
 
-# Genetic Distance
+# Summary Statistics
+## FST
+Building on the SFS estimated previously, we first estimate the 2D-SFS for AU and TI populations. Although there is the option to plot this output, it is not recommended for folded SFS as it masks invariant sites and is originally intended to visualise unfolded data only. 
+```
+realSFS ${data}SFS/AU.saf.idx ${data}SFS/TI.saf.idx > ${data}SFS/AU.TI.sfs
+```
+Once the 2D-SFS was generated, the FST between the two populations was estimated. 
+```
+realSFS fst index ${data}SFS/AU.saf.idx ${data}SFS/TI.saf.idx -sfs ${data}/AU.TI.sfs -fstout ${data}distance/AU.TI -whichFST 1
+realSFS fst stats2 ${data}SFS/AU.TI.fst.idx -win 50000 -step 10000 > ${data}distance/AU.TI_50kbWin_10kbStep.fst.txt
+realSFS fst stats2 ${data}SFS/AU.TI.fst.idx > ${data}distance/AU.TI_total.fst.txt
+```
+## Nucleotide diversity
+```
+for POP in AU TI
+        do
+        if [[ "$POP" == AU ]]
+                then
+	        echo "Running ANGSD to estimate thetas for $POP..."
+	        angsd -P 24 -b ${data}$POP.bamlist -ref $ref -anc $ref -out ${data}diversity/$POP \
+                        -uniqueOnly 1 -remove_bads 1 -only_proper_pairs 1 -trim 0 -C 50 -baq 1 \
+                        -minMapQ 20 -minQ 20 -minInd 15 -setMinIndDepth 5 -setMaxIndDepth 150 -doCounts 1 \
+                        -GL 1 -doSaf 1 -doThetas 1 -pest ${data}SFS/$POP.sfs
+                thetaStat do_stat ${data}diversity/${POP}.thetas.idx -outnames ${data}diversity/${POP}_total.thetas
+                thetaStat do_stat ${data}diversity/${POP}.thetas.idx -win 50000 -step 10000 -outnames ${data}diversity/${POP}_50kbWin_10kbStep.thetas
+        else
+                echo "Running ANGSD to estimate thetas for $POP..."
+	        angsd -P 24 -b ${data}$POP.bamlist -ref $ref -anc $ref -out ${data}diversity/$POP \
+                        -uniqueOnly 1 -remove_bads 1 -only_proper_pairs 1 -trim 0 -C 50 -baq 1 \
+                        -minMapQ 20 -minQ 20 -minInd 11 -setMinDepth 5 -setMaxDepth 150 -doCounts 1 \
+                        -GL 1 -doSaf 1 -doThetas 1 -pest ${data}SFS/$POP.sfs
+                thetaStat do_stat ${data}diversity/${POP}.thetas.idx \
+                        -outnames ${data}diversity/${POP}_total.thetas
+                thetaStat do_stat ${data}diversity/${POP}.thetas.idx -win 50000 -step 10000 \
+                        -outnames ${data}diversity/${POP}_50kbWin_10kbStep.thetas
+        fi &
+done
+
+```
 
 # Population Structure
-To visualise global population strucgture (i.e., Structure between AU and TI populations) and sub-population structure within AU and TI, I performed a Principal Component Analysis (PCA) and Mulidimensional Scaling (MDS) analysis using genetic distance. Genotype probabilities for each site were estimated using per-site allele frequency as a prior with ```ANGSD```, ```ngsF``` and ```realSFS```, as above. 
+To visualise global population strucgture (i.e., Structure between AU and TI populations) and sub-population structure within AU and TI, I performed a Principal Component Analysis (PCA) and Mulidimensional Scaling (MDS) analysis using genetic distance. Genotype probabilities for each site were estimated using per-site allele frequency as a prior with ```ANGSD``` and ```ngsF``` as above. 
 ## Principal Component Analysis (PCA)
 To estimate a PCA, the ngsCovar program was used. 
 ```
-gunzip ${data}SFS/*.geno.gz
+gunzip ${data}population_structure/*.geno.gz
 
-for POP in AU TI
-        do
-        nsites=$(zcat ${data}inbreeding/${POP}.mafs.gz | tail -n+2 | wc -l)
-        nind=$(cat ${data}${POP}.bamlist | wc -l)
-        ${ngstools}ngsPopGen/ngsCovar -probfile ${data}SFS/$POP.geno -outfile ${data}distance/${POP}.covar -nind
-done
+nsites=$(zcat ${data}population_structure/global.mafs.gz | tail -n+2 | wc -l)
+nind=$(cat ${data}global.bamlist | wc -l)
 
-Rscript -e 'write.table(cbind(seq(1,30),rep(1,30),c(rep("LWK",10),rep("TSI",10),rep("PEL",10))), row.names=F, sep="\t", col.names=c("FID","IID","CLUSTER"), file="Results/ALL.clst", quote=F)'
-Rscript $NGSTOOLS/Scripts/plotPCA.R -i Results/ALL.covar -c 1-2 -a Results/ALL.clst -o Results/ALL.pca.pdf
+${ngstools}ngsPopGen/ngsCovar -probfile ${data}population_structure/global.geno \
+        -outfile ${data}distance/${POP}.covar -nind 26 -nsites $nsites -call 0 -norm 0
+
+Rscript -e 'write.table(cbind(seq(1,15),rep(1,11),c(rep("AU",15),rep("TI",11))), row.names=F, sep="\t", col.names=c("FID","IID","CLUSTER"), file="${data}population_structure/global.clst", quote=F)'
+
+Rscript ${ngstools}Scripts/plotPCA.R -i ${data}population_structure/global.covar -c 1-2 -a ${data}population_structure/global.clst -o ${data}population_structure/global.pca.pdf
 
 ```
 ## Multi Dimensional Scaling (MDS) plot

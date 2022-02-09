@@ -1,14 +1,14 @@
 # Running Smoove to identify fixed deletions in tara iti and Australian fairy tern populations
 Defining global variables:
 ```
-ref=/kakapo-data/References/kakapo_full_ref.fa
-data=/kakapo-data/bwa/
+ref=/data/reference/bSteHir1.pri.cur.20190820.fasta
+data=/data/common_tern/alignments/nodup_bam/
 out=/kakapo-data/bwa/smoove/
-remove=/kakapo-data/bwa/smoove/unplaced_scaffolds.bed
-annotate=/kakapo-data/metadata/annotation/GCF_004027225.2_bStrHab1.2.pri_genomic.gff.gz
-TMPDIR=/kakapo-data/bwa/smoove/temp/
+remove=/data/common_tern/metadata/
+TMPDIR=/data/common_tern/smoove/temp/
 ```
-# SV discovery
+## SV discovery
+Similar to SV discovery in Chapter 3, Smoove was run as below:
 ```
 ulimit -Sn 5000
 for i in {01..11}
@@ -18,82 +18,42 @@ for i in {01..11}
         fbase=$(basename ${fbam} .sorted.bam)
         echo "Running SMOOVE call for ${fbase}..."
         smoove call --name ${fbase} --fasta ${ref} --outdir ${out}SV_calls_female \
-            --exclude ${remove} -p 1 --genotype ${fbam}
-    done &
-done
-for j in {01..14}
-    do
-    for mbam in ${data}bwa_male/bam/batch${j}/*.bam
-        do
-        mbase=$(basename ${mbam} .sorted.bam)
-        echo "Running SMOOVE call for ${mbase}..."
-        smoove call --name ${mbase} --fasta ${ref} --outdir ${out}SV_calls_male \
-            --exclude ${remove} -p 1 --genotype ${mbam}
+            -p 1 --genotype ${fbam}
     done &
 done
 wait
 ```
-## Merging variant calls, genotyping and annotating output
+## Merging variant calls and genotyping output
+Called variants were then merged and genotyped. 
 ```
 echo "Merging all called variants..."
-smoove merge --name bwa_smoove -f ${ref} --outdir ${out} ${out}SV_calls_male/*.genotyped.vcf.gz ${out}SV_calls_female/*$for i in {01..11}
-for i in {01..11}
+smoove merge --name fairy_tern -f ${ref} --outdir ${out} ${out}SV_calls/QC_pass/*.vcf.gz
+while read -r line
     do
-    for fbam in ${data}bwa_female/bam/batch${i}/*.bam
-        do
-        fbase=$(basename ${fbam} .sorted.bam)
-        echo "Creating individual genotyped VCF for ${fbase}...."
-        smoove genotype -d -x -p 1 --name ${fbase} --fasta ${ref} --outdir ${out}genotypes \
-            --duphold --vcf ${out}bwa_smoove.sites.vcf.gz ${fbam}
-    done &
-done
-for j in {01..14}
-    do
-    for mbam in ${data}bwa_male/bam/batch${j}/*.bam
-        do
-        mbase=$(basename ${mbam} .sorted.bam)
-        echo "Creating individual genotyped VCF for ${mbase}..."
-        smoove genotype -d -x -p 1 --name ${mbase} --fasta ${ref} --outdir ${out}genotypes \
-            --duphold --vcf ${out}bwa_smoove.sites.vcf.gz ${mbam}
-    done &
-done
-for j in {01..14}
-    do
-    for mbam in ${data}bwa_male/bam/batch${j}/*.bam
-        do
-        mbase=$(basename ${mbam} .sorted.bam)
-        echo "Creating individual genotyped VCF for ${mbase}..."
-        smoove genotype -d -x -p 1 --name ${mbase} --fasta ${ref} --outdir ${out}genotypes \
-            --duphold --vcf ${out}bwa_smoove.sites.vcf.gz ${mbam}
-    done &
-done
+    id=$(echo $line | tr "/" " " | awk '{print $5}' | sed 's/_nodup.bam//g')
+    echo "Creating individual genotyped VCF for ${id}...."
+    smoove genotype -d -x -p 1 --name ${id} --fasta ${ref} --outdir ${out}genotypes \
+        --duphold --vcf ${out}01_fairy_tern.sites.vcf.gz ${line}
+done < ${out}samples.bamlist
 wait
 echo "Creating total raw VCF..."
-smoove paste --name ${out}bwa_smoove.genos ${data}genotypes/*.vcf.gz
-echo "Annotating raw VCF..."
-smoove annotate --gff ${annotate} ${out}bwa_smoove.genos.smoove.square.vcf.gz | bgzip -c > ${out}bwa_smoove.annotated.vcf.gz
+smoove paste --name ${out}02_fairy_tern.genos ${data}genotypes/*.vcf.gz
 ```
-# Used bwa_smoove_annotated.vcf.gz for unfiltered SV summary stats. Created filtered file as per:
-bcftools view -t ^NC_044302.2 -O v -o ${out}01_smoove_unfiltered.vcf ${out}bwa_smoove.annotated.vcf.gz
-bcftools view -i '(SVTYPE = "DEL" & FMT/DHFFC[0-168] < 0.7) | (SVTYPE = "DUP" & FMT/DHBFC[0-168] > 1.3) | (SVTYPE = "INV")' \
-    -O v -o ${out}02_smoove_SVfiltered.vcf ${out}01_smoove_unfiltered.vcf
-bcftools view -i '(MSHQ>=3)' -O v -o ${out}03_smoove_genofiltered.vcf ${out}02_smoove_SVfiltered.vcf
 
-bcftools query -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\tsmoove_unfiltered\n' ${out}01_smoove_unfiltered.vcf > ${out}smoove_summary.tsv
-bcftools query -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\tsmoove_SVfiltered\n' ${out}02_smoove_SVfiltered.vcf >> ${out}smoove_summary.tsv
-bcftools query -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\tsmoove_genofiltered\n' ${out}03_smoove_genofiltered.vcf >> ${out}smoove_summary.tsv
+## SV Filtering
+Finally, SVs were sorted into population specific data sets, filtered to include fixed deletions only and then the private variants identified. 
 
+```
+bcftools view -S ${out}AU_samples.tsv -i 'SVTYPE=="DEL" & (FMT/DHFFC[0:15] < 0.7)' ${out}02_fairy_tern.genos.smoove.square.vcf.gz | \
+    bcftools view -i 'N_PASS(FMT/GT =="AA") = 15' -O z -o ${out}AU_filtered.vcf.gz
 
-# Lineage Comparisons
+bcftools view -S ${out}TI_samples.tsv -i 'SVTYPE=="DEL" & (FMT/DHFFC[15:25] < 0.7)' ${out}02_fairy_tern.genos.smoove.square.vcf.gz | \
+    bcftools view -i 'N_PASS(FMT/GT =="AA") = 11' -O z -o ${out}TI_filtered.vcf.gz
 
-mkdir -p ${out}lineage_comparisons
+bcftools view -S TI_samples.tsv -i 'SVTYPE == "DEL" & (FMT/DHFFC[15-25] < 0.7)' 02_fairy_tern.genos.smoove.square.vcf.gz | bcftools view -i 'FMT/GT[0:10] == "AA"' -O z -o TI_filtered.vcf.gz
 
-bcftools view -s Richard_Henry ${out}05_smoove_genofiltered_trio.vcf | bcftools view -i 'GT!="RR" & GT!="mis"' -O z -o ${out}lineage_comparisons/RH_variants.vcf.gz
-bcftools view -s ^Richard_Henry,Kuia,Gulliver,Sinbad,Adelaide,Henry,Marian,Gertrude ${out}05_delly_genofiltered_trio.vcf | bcftools view -i 'GT!="RR" & GT!="mis"' -O z -o ${out}lineage_comparisons/SI_variants.vcf.gz
+tabix ${out}AU_filtered.vcf.gz
+tabix ${out}TI_filtered.vcf.gz
 
-tabix ${out}lineage_comparisons/RH_variants.vcf.gz
-tabix ${out}lineage_comparisons/SI_variants.vcf.gz
-
-bcftools isec ${out}lineage_comparisons/RH_variants.vcf.gz \
-    ${out}lineage_comparisons/SI_variants.vcf.gz \
-    -p ${out}lineage_comparisons/
+bcftools isec ${out}AU_filtered.vcf.gz ${out}TI_filtered.vcf.gz -p ${out}
+```
