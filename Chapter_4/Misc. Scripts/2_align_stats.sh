@@ -2,8 +2,8 @@
 # Script augmented from Joseph Guhlin to estimate alignment stats. The samtools, mosdepth
 # and qualimap software packages are installed under the align_stat conda environment.
 #########################################################################################
-data=/data/tara_iti_shortreads/alignments/
-ref=/data/tara_iti_shortreads/reference/bSteHir1.pri.cur.20190820.fasta
+data=/data/common_tern/alignments/
+ref=/data/reference/bSteHir1.pri.cur.20190820.fasta
 
 for bam in ${data}merged_bam/*.bam
 do

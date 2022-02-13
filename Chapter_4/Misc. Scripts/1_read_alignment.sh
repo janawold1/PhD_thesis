@@ -1,17 +1,17 @@
 #!/bin/bash -e
-ref=/data/tara_iti_shortreads/reference/bSteHir1.pri.cur.20190820.fasta.gz #Reference genome for alignment
-datadir=/data/tara_iti_shortreads/trimmed_reads2/ #Directory with fastq data
-samdir=/data/tara_iti_shortreads/alignments/sam/ #Sam file output
-bamdir=/data/tara_iti_shortreads/alignments/bam/ #Bam file output
+ref=/data/reference/bSteHir1.pri.cur.20190820.fasta.gz #Reference genome for alignment
+datadir=/data/trimmed_reads2/ #Directory with fastq data
+samdir=/data/common_tern/alignments/sam/ #Sam file output
+bamdir=/data/common_tern/alignments/bam/ #Bam file output
 fq1=_R1.fq.gz #Read 1 suffix
 fq2=_R2.fq.gz #Read 2 suffix
 platform="Illumina"
 
-#First index the reference genome
-#time bwa index $ref
+# First index the reference genome
+time bwa index $ref
 
-#Now, retrieving read group and instrument information.
-for samp in ${datadir}*_R1.fq.gz #Remember to be explicit with file location
+# Now, retrieving read group and instrument information.
+for samp in ${datadir}*_R1.fq.gz # Remember to be explicit with file location
 do
     base=$(basename ${samp} _R1.fq.gz)
     infoline=$(zcat ${samp} | head -n 1)

@@ -56,3 +56,9 @@ tabix ${out}${pop}_fixed_DEL.vcf.gz
 bcftools isec ${out}TI_fixed_DEL.vcf.gz ${out}AU_fixed_DEL.vcf.gz -p ${out}
 ```
 Now we are left with the fixed deletions that are private to each population and shared, spoiler alert there are none.
+
+## SV summary
+
+```
+
+```
