@@ -95,22 +95,13 @@ bcftools +mendelian -m a -T ${trio} -O v -o ${out}09_delly_SVfilter_trio.vcf \
 bcftools +mendelian -m a -T ${trio} -O v -o ${out}10_delly_genofilter_trio.vcf \
     ${out}08_delly_genofilter.vcf
 
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0' -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\t0_fail_delly_SVfilter\n' \
-    ${out}09_delly_SVfilter_trio.vcf >> ${out}delly_mendel.tsv
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.05' -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\t<=0.05_fail_delly_SVfilter\n' \
-    ${out}09_delly_SVfilter_trio.vcf >> ${out}delly_mendel.tsv
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.1' -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\t<=0.1_fail_delly_SVfilter\n' \
-    ${out}09_delly_SVfilter_trio.vcf >> ${out}delly_mendel.tsv
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.2' -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\t<=0.2_fail_delly_SVfilter\n' \
-    ${out}09_delly_SVfilter_trio.vcf >> ${out}delly_mendel.tsv
-
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0' -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\t0_fail_delly_genofilter\n' \
+bcftools query -i '(MERR / N_PASS(GT!="mis")) <=0' -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\t0_fail_delly_genofilter\n' \
     ${out}10_delly_genofilter_trio.vcf >> ${out}delly_mendel.tsv
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.05' -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\t<=0.05_fail_delly_genofilter\n' \
+bcftools query -i '(MERR / N_PASS(GT!="mis")) <=0.05' -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\t<=0.05_fail_delly_genofilter\n' \
     ${out}10_delly_genofilter_trio.vcf >> ${out}delly_mendel.tsv
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.1' -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\t<=0.1_fail_delly_genofilter\n' \
+bcftools query -i '(MERR / N_PASS(GT!="mis")) <=0.1' -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\t<=0.1_fail_delly_genofilter\n' \
     ${out}10_delly_genofilter_trio.vcf >> ${out}delly_mendel.tsv
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.2' -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\t<=0.2_fail_delly_genofilter\n' \
+bcftools query -i '(MERR / N_PASS(GT!="mis")) <=0.2' -f '%CHROM\t%POS\t%INFO/END\t%SVTYPE\t<=0.2_fail_delly_genofilter\n' \
     ${out}10_delly_genofilter_trio.vcf >> ${out}delly_mendel.tsv
 ```
 ### Lineage Comparisons
@@ -155,7 +146,7 @@ while read -r line
     indiv=$(echo $line | awk '{print $1}')
     gen=$(echo $line | awk '{print $2}')
     echo "Counting SVs for $indiv..."
-    bcftools view -s ${indiv} ${out}10_delly_genofilter_trio.vcf | bcftools query -i 'GT!= "RR" & GT!="mis"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\n' >> ${out}delly_indiv_counts.tsv
+    bcftools view -s ${indiv} ${out}10_delly_genofilter_trio.vcf | bcftools query -i 'GT== "alt"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\n' >> ${out}delly_indiv_counts.tsv
     echo "Assigning $gen generation to $indiv"
     grep "^$indiv" ${out}delly_indiv_counts.tsv | awk -v var="$gen" '{print $0"\t"var}' >> ${out}delly_generations.tsv
 done < /kakapo-data/metadata/generations.tsv

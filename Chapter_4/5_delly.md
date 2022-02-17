@@ -26,6 +26,7 @@ time for i in {01..09}
 done
 wait
 delly merge -o ${out}01_fairy_tern_minSize300bp_sites.bcf -m 300 SVcalls/QC_pass/*.bcf
+delly merge -o ${out}total_sites.bcf ${out}SVcalls/QC_pass/*.bcf # Used for counting total of deletions discovered before filtering.
 ```
 # SV genotyping
 Sites were then merged, with a minimum size threshold of 300bp and individuals genotyped. 

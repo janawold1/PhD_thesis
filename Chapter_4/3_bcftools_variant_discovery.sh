@@ -3,7 +3,7 @@
 # Scripts provided by Roger Moraga, pipeline augmented by Jana Wold.
 #######################################################################################################
 ref=/data/reference/bSteHir1.pri.cur.20190820.fasta #Reference genome for alignment
-scriptdir=/data/Moraga_bcftools_pipeline/ # Directory holding bcftools pipeline
+scriptdir=/data/Moraga_SNP_discovery_pipeline/ # Directory holding bcftools pipeline
 bamdir=/data/common_tern/alignments/nodup_bam/ # BAM file directory
 bcf_dir=/data/common_tern/bcftools_HQvariant_calls/ # BCF output
 
@@ -18,7 +18,7 @@ printf "\nRunning mpileup on chunks of bam files...\n"
 for (( i=1; i<=24; i++ ))
     do
     bcftools mpileup \
-        --threads 24 \
+        --threads 64 \
         -f $ref\
         -a AD,ADF,ADR,DP,SP \
         -o ${bcf_dir}fairy_tern_${i}_raw.bcf \

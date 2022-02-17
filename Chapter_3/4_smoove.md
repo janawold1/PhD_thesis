@@ -99,22 +99,15 @@ bcftools +mendelian -m a -T ${trio} -O v -o ${out}04_smoove_SVfiltered_trio.vcf 
 bcftools +mendelian -m a -T ${trio} -O v -o ${out}05_smoove_genofiltered_trio.vcf \
     ${out}03_smoove_genofiltered.vcf
 
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0' -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t0_fail_smoove_SVfilter\n' ${out}04_smoove_SVfiltered_trio.vcf >> ${out}smoove_mendel.tsv
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.05' -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t<=0.05_fail_smoove_SVfilter\n' \
-    ${out}04_smoove_SVfiltered_trio.vcf >> ${out}smoove_mendel.tsv
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.1' -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t<=0.1_fail_smoove_SVfilter\n' \
-    ${out}04_smoove_SVfiltered_trio.vcf >> ${out}smoove_mendel.tsv
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.2' -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t<=0.2_fail_smoove_SVfilter\n' \
-    ${out}04_smoove_SVfiltered_trio.vcf >> ${out}smoove_mendel.tsv
 
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0' -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t0_fail_smoove_genofilter\n' \
-    ${out}05_delly_genofiltered_trio.vcf >> ${out}smoove_mendel.tsv
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.05' -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t<=0.05_fail_smoove_genofilter\n' \
-    ${out}05_delly_genofiltered_trio.vcf >> ${out}smoove_mendel.tsv
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.1' -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t<=0.1_fail_smoove_genofilter\n' \
-    ${out}05_delly_genofiltered_trio.vcf >> ${out}smoove_mendel.tsv
-bcftools query -i '(MERR / N_PASS(GT!="RR")) <=0.2' -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t<=0.2_fail_smoove_genofilter\n' \
-    ${out}05_delly_genofiltered_trio.vcf >> ${out}smoove_mendel.tsv
+bcftools query -i '(MERR / N_PASS(GT!="mis")) <=0' -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t0_fail_smoove_genofilter\n' \
+    ${out}05_smoove_genofiltered_trio.vcf >> ${out}smoove_mendel.tsv
+bcftools query -i '(MERR / N_PASS(GT!="mis")) <=0.05' -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t<=0.05_fail_smoove_genofilter\n' \
+    ${out}05_smoove_genofiltered_trio.vcf >> ${out}smoove_mendel.tsv
+bcftools query -i '(MERR / N_PASS(GT!="mis")) <=0.1' -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t<=0.1_fail_smoove_genofilter\n' \
+    ${out}05_smoove_genofiltered_trio.vcf >> ${out}smoove_mendel.tsv
+bcftools query -i '(MERR / N_PASS(GT!="mis")) <=0.2' -f '%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t<=0.2_fail_smoove_genofilter\n' \
+    ${out}05_smoove_genofiltered_trio.vcf >> ${out}smoove_mendel.tsv
 ```
 
 ## Lineage Comparisons
