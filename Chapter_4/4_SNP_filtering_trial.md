@@ -1,5 +1,5 @@
 # SNP data filtering trial
-SNP filtering trial for tara iti and Australian fairy tern. Here we tested a number of outcomes for SNP filtering of tara iti specific, Australian fairy tern specific, and global SNPs. The steps taken here are adapted from (this)[https://speciationgenomics.github.io/filtering_vcfs/] tutorial by Mark Ravinet & Joana Meier.
+SNP filtering trial for tara iti and Australian fairy tern. Here we tested a number of outcomes for SNP filtering of tara iti specific, Australian fairy tern specific, and global SNPs. The steps taken here are adapted from [this](https://speciationgenomics.github.io/filtering_vcfs/) tutorial by Mark Ravinet & Joana Meier.
 
 The Pixy software package requires the incorporation of invariant sites for estimates of pi, dxy and Fst. As such, a VCF with SNPs and a separate VCF with invariant sites were assessed as per below.
 
@@ -21,7 +21,6 @@ bcftools view -T ./chroms --threads 120 -i '(N_PASS(GT="mis")<=5) & (MEAN(FMT/DP
 This left 12,755,476 SNPs in the ```global_biallelic.vcf.gz``` file and 485,166,219 sites in the ```global_invariant.vcf.gz``` file. Prepared the SNP file by including HWE and MAF annotations as per:
 ```
 bcftools +fill-tags ${data}SNP_filtering_trial/global_biallelic.vcf.gz -O z -o ${data}SNP_filtering_trial/global_biallelic_annotated.vcf.gz -- -t HWE,MAF
-
 ```
 
 # Filtering parameters
@@ -162,15 +161,9 @@ bcftools view --threads 64 \
   bcftools +prune -m 0.8 -w 1000 | \
   bcftools view -i 'N_PASS(GT="mis")=0' -O z -o ${data}SNP_filtering_trial/global_MAF.vcf.gz
 
-bcftools view --threads 64 \
-  -i 'MQ>=20 & (MIN(FMT/DP)>=5) & (MAX(FMT/DP)<=25) & (MEAN(FMT/DP)>=5) & (MEAN(FMT/DP)<=25)' \
-  ${data}SNP_filtering_trial/global_variant_autosomes.vcf.gz | \
-  bcftools +prune -m 0.8 -w 1000 | \
-  bcftools view -i 'N_PASS(GT="mis")=0' -O z -o ${data}SNP_filtering_trial/global_noMAF.vcf.gz
-
-bcftools view --threads 64 \
-  -i 'MQ>=20 & (MIN(FMT/DP)>=5) & (MAX(FMT/DP)<=25) & (MEAN(FMT/DP)>=5) & (MEAN(FMT/DP)<=25)' \
-  bcftools view -i 'N_PASS(GT="mis")=0' -O z -o ${data}SNP_filtering_trial/global_noMAF_noPrune.vcf.gz
+bcftools view --threads 64 -i 'MQ>=20 & (MIN(FMT/DP)>=5) & (MAX(FMT/DP)<=25) & (MEAN(FMT/DP)>=5) & (MEAN(FMT/DP)<=25) & (MAF>=0.05)' \
+  -O z -o global_MAF_noPrune.vcf.gz \
+  global_variant_autosomes_annotated.vcf.gz
 
 
 bcftools view --threads 64 \
@@ -178,10 +171,7 @@ bcftools view --threads 64 \
   -O z -o /data/common_tern/SNP_filtering_trial/global_invariant_filtered2.vcf.gz /data/common_tern/SNP_filtering_trial/ \
   global_invariant_autosomes.vcf.gz
 
-bcftools +prune -m 0.8 -w 1000 ${data}global_variant_MAFfiltered.vcf.gz -O z -o ${data}global_variant_MAFfiltered_LD.vcf.gz
-bcftools +prune -m 0.8 -w 1000 ${data}global_variant_noMAFfiltered.vcf.gz -O z -o ${data}global_variant_noMAFfiltered_LD.vcf.gz
-
 bcftools view -i 'N_PASS(GT="mis")=0' -O z -o ${data}global_MAFfiltered_LD_nomiss.vcf.gz ${data}global_variant_MAFfiltered_LD.vcf.gz
 bcftools view -i 'N_PASS(GT="mis")=0' -O z -o ${data}global_noMAFfiltered_LD_nomiss.vcf.gz ${data}global_variant_noMAFfiltered_LD.vcf.gz
 ```
-
+The ```global_MAF_noPrune.vcf.gz``` SNPs were used for counting the total number of variable SNPs, private SNPs, fixed SNPs, and the proportion of variable to invariant sites. These data as well as the pruned SNPs were used for estimates of pi, Dxy, and Fst with pixy, estimates of heterozygosity with VCFtools. Finally, admixture was run using the pruned SNPs. 

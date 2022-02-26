@@ -1,7 +1,8 @@
-#########################################################################################
-# Script augmented from Joseph Guhlin to estimate alignment stats. The samtools, mosdepth
-# and qualimap software packages are installed under the align_stat conda environment.
-#########################################################################################
+# Alignment Statistics
+The scripts provided here were augmented from Joseph Guhlin to estimate alignment stats. [Samtools v1.11](https://github.com/samtools/samtools), [mosdepth v0.3.3](https://github.com/brentp/mosdepth) and [qualimap v2.2.2](http://qualimap.conesalab.org/) software packages were used.
+
+Aligned bam files were sorted, mates fixed and PCR duplicates were removed with SAMtools.
+```
 data=/data/common_tern/alignments/
 ref=/data/reference/bSteHir1.pri.cur.20190820.fasta
 
@@ -15,9 +16,12 @@ do
     samtools sort -@ 8 -o ${data}nodup_bam/${base}.fixmate.sorted.bam \
         ${data}nodup_bam/${base}.fixmate.bam
     samtools nodup -@ 8 ${data}nodup_bam/${base}.fixmate.sorted.bam \
-        ${data}nodup_bam/${base}_nodup.bam &
+        ${data}nodup_bam/${base}_nodup.bam
+    samtools stats ${bam} > ${data}nodup_bam_stats/${base}.stats
 done
-wait
+```
+
+```
 for bam in ${data}nodup_bam/*_nodup.bam
     do
     base=$(basename ${bam} _nodup.bam)
@@ -29,6 +33,10 @@ for bam in ${data}nodup_bam/*_nodup.bam
         -outdir ${data}nodup_bam_stats/${base}.graphmap \
         --java-mem-size=8G
     echo "Running calculating stats for ${base}..."
-    samtools stats ${bam} > ${data}nodup_bam_stats/${base}.stats
-    mosdepth -n --fasta ${ref} ${data}nodup_bam_stats/${base} ${bam}
+    mosdepth --threads 24 --fast-mode --by 50 ${data}nodup_bam_stats/${base} ${bam}
 done
+```
+For ease of comparisons, mosdepth outputs were also plotted with:
+```
+python ~/anaconda3/envs/mosdepth/scripts/plot-dist.py ${data}nodup_bam_stats/*.global.dist.txt
+```

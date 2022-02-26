@@ -1,7 +1,16 @@
 # ONT basecalling, read quality and trimming
-
+Raw MinION fast5 files were basecalled using guppy v6.0.1 under the super 
 ```
-
+config=dna_r9.4.1_450bps_sup.cfg
+guppy_basecaller -i ${data} \
+    -s ${output} \
+    --config ${config} \
+    --verbose_logs \
+    --compress_fastq \
+    --device cuda:all:100%\
+    --recursive \
+    --calib_detect \
+    --detect_mid_strand_adapter
 ```
 ## Read trimming
 ```

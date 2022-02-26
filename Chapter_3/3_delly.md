@@ -109,8 +109,8 @@ bcftools query -i '(MERR / N_PASS(GT!="mis")) <=0.2' -f '%CHROM\t%POS\t%INFO/END
 ```
 mkdir -p ${out}lineage_comparisons
 
-bcftools view -s Richard_Henry ${out}10_delly_genofilter_trio.vcf | bcftools view -i 'GT!="RR" & GT!="mis"' -O v -o ${out}lineage_comparisons/RH_variants.vcf
-bcftools view -s ^Richard_Henry,Kuia,Gulliver,Sinbad,Adelaide,Henry,Marian,Gertrude ${out}10_delly_genofilter_trio.vcf | bcftools view -i 'GT!="RR" & GT!="mis"' -O v -o ${out}lineage_comparisons/SI_variants.vcf
+bcftools view -s Richard_Henry ${out}10_delly_genofilter_trio.vcf | bcftools view -i 'GT=="alt" & GT!="mis"' -O v -o ${out}lineage_comparisons/RH_variants.vcf
+bcftools view -s ^Richard_Henry,Kuia,Gulliver,Sinbad,Adelaide,Henry,Marian,Gertrude ${out}10_delly_genofilter_trio.vcf | bcftools view -i 'GT=="alt" & GT!="mis"' -O v -o ${out}lineage_comparisons/SI_variants.vcf
 
 tabix ${out}lineage_comparisons/RH_variants.vcf
 tabix ${out}lineage_comparisons/SI_variants.vcf
@@ -122,24 +122,33 @@ bcftools isec ${out}lineage_comparisons/RH_variants.bcf \
 ### Summarising numbers of SVs per individual
 ```
 bcftools view -h ${out}08_bwa_delly_final_trio.vcf | grep CHROM | tr "\t" "\n" | tail -n 169 > ${out}samples.txt
-bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0000.vcf > ${out}lineage_comparisons/Fiordland_sites.txt
-bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0001.vcf > ${out}lineage_comparisons/SI_sites.txt
-bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0002.vcf > ${out}lineage_comparisons/shared_sites.txt
+
+bcftools query -f '%CHROM\t%POS\n' \
+    ${out}lineage_comparisons/unfiltered/0000.vcf > ${out}lineage_comparisons/unfiltered/Fiordland_unfiltered_private_sites.txt
+bcftools query -f '%CHROM\t%POS\n' \
+    ${out}lineage_comparisons/unfiltered/0001.vcf > ${out}lineage_comparisons/unfiltered/Rakiura_unfiltered_private_sites.txt
+bcftools query -f '%CHROM\t%POS\n' \
+    ${out}lineage_comparisons/unfiltered/0002.vcf > ${out}lineage_comparisons/unfiltered/shared_unfiltered_sites.txt
+
+bcftools query -f '%CHROM\t%POS\n' \
+    ${out}lineage_comparisons/genoFiltered/0000.vcf > ${out}lineage_comparisons/genoFiltered/Fiordland_private_sites.txt
+bcftools query -f '%CHROM\t%POS\n' \
+    ${out}lineage_comparisons/genoFiltered/0001.vcf > ${out}lineage_comparisons/genoFiltered/SI_private_sites.txt
+bcftools query -f '%CHROM\t%POS\n' \
+    ${out}lineage_comparisons/genoFiltered/0002.vcf > ${out}lineage_comparisons/genoFiltered/shared_sites.txt
 
 while read -r line
     do
-    echo "Counting SVs for ${line}..."
-    si=$(bcftools view -T ${out}lineage_comparisons/SI_sites.txt -s ${line} ${out}08_delly_final_trio.vcf | bcftools query -i 'GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    sh=$(bcftools view -T ${out}lineage_comparisons/shared_sites.txt -s ${line} ${out}08_delly_final_trio.vcf | bcftools query -i 'GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    rh=$(bcftools view -T ${out}lineage_comparisons/Fiordland_sites.txt -s ${line} ${out}08_delly_final_trio.vcf | bcftools query -i 'GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    printf "${line}\t${si}\tdelly_SI\n" >> ${out}lineage_comparisons/delly_indiv_SVcounts.tsv
-    printf "${line}\t${sh}\tdelly_shared\n" >> ${out}lineage_comparisons/delly_indiv_SVcounts.tsv
-    printf "${line}\t${rh}\tdelly_RH\n" >> ${out}lineage_comparisons/delly_indiv_SVcounts.tsv
-    bcftools view -T ${out}lineage_comparisons/SI_sites.txt -s ${line} ${out}08_delly_final_trio.vcf | bcftools query -i 'GT!= "RR" & GT!="mis"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\tdelly_SI\n' >> detailed_delly_summary.tsv
-    bcftools view -T ${out}lineage_comparisons/shared_sites.txt -s ${line} ${out}08_delly_final_trio.vcf | bcftools query -i 'GT!= "RR" & GT!="mis"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\tdelly_shared\n' >> detailed_delly_summary.tsv
-    bcftools view -T ${out}lineage_comparisons/Fiordland_sites.txt -s ${line} ${out}08_delly_final_trio.vcf | bcftools query -i 'GT!= "RR" & GT!="mis"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\tdelly_RH\n' >> detailed_delly_summary.tsv
-done < ${out}samples.txt
-
+    indiv=$(echo $line | awk '{print $1}')
+    gen=$(echo $line | awk '{print $2}')
+    echo "Counting SVs for $indiv..."
+    bcftools view -s ${indiv} -R lineage_comparisons/unfiltered/RH_unfiltered_private_sites.txt 01_bwa_delly_genotypes.bcf | \
+        bcftools query -i 'GT=="alt"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\tFiordland_unfiltered_lineage\n' >> delly_lineage_counts.tsv
+    bcftools view -s ${indiv} -R lineage_comparisons/unfiltered/SI_unfiltered_private_sites.txt 01_bwa_delly_genotypes.bcf | \
+        bcftools query -i 'GT=="alt"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\tRakiura_unfiltered_lineage\n' >> delly_lineage_counts.tsv
+    bcftools view -s ${indiv} -R lineage_comparisons/unfiltered/shared_unfiltered_sites.txt 01_bwa_delly_genotypes.bcf | \
+        bcftools query -i 'GT=="alt"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\tShared_unfiltered_lineage\n' >> delly_lineage_counts.tsv
+done < /kakapo-data/metadata/generations.tsv
 
 while read -r line
     do

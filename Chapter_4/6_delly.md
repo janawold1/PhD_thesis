@@ -25,41 +25,83 @@ time for i in {01..09}
 	done &
 done
 wait
-delly merge -o ${out}01_fairy_tern_minSize300bp_sites.bcf -m 300 SVcalls/QC_pass/*.bcf
-delly merge -o ${out}total_sites.bcf ${out}SVcalls/QC_pass/*.bcf # Used for counting total of deletions discovered before filtering.
+delly merge -o ${out}01_fairy_tern_sites.bcf ${out}SVcalls/QC_pass/*.bcf
 ```
 # SV genotyping
 Sites were then merged, with a minimum size threshold of 300bp and individuals genotyped. 
 ```
 printf "\nRunning Delly genotyping...\n"
-while read -r line
+for bcf in ${out}SVcalls/QC_pass/*.bcf
     do
-    id=$(echo $line | tr "/" " " | awk '{print $5}' | sed 's/_nodup.bam//')
-    printf "\nRunning Delly genotyping for ${mbase}..."
-    delly call -g ${ref} -v ${out}01_fairy_tern_minSize300bp_sites.bcf -o ${out}genotypes/${mbase}.geno.minsize.bcf ${line}
-done
+    id=$(basename ${bcf} .bcf)
+    printf "\nRunning Delly genotyping for ${id}..."
+	delly call -g ${ref} -v ${out}01_fairy_tern_sites.bcf -o ${out}genotypes/$(id).geno.bcf /data/common_tern/alignments/nodup_bam/${id}_nodup.bam &
+	done
 ```
 ## SV filtering
-Finally, all genotyped individuals were merged and calls were filtered with Delly's germline setting (somatic filtering works with tumour/normal pairs). Deletions were filtered for those that passed all record level filters in each population. Finally, the interesection between the two populations was used to identify private deletions. 
+Finally, all genotyped individuals were merged and calls were filtered with Delly's germline setting (somatic filtering works with tumour/normal pairs). 
 ```
-bcftools merge -m id -O b -o ${out}02_fairy_tern_genotypes.bcf ${out}genotypes/*.bcf
+bcftools merge -m id -O b -o ${out}02_fairy_tern_genotypes.bcf ${out}genotypes/*.geno.bcf
 bcftools index ${out}02_fairy_tern_genotypes.bcf
 
-delly filter -f germline -o ${out}03_fairy_tern_germline_filtered.bcf \
+delly filter -f germline --pass -o ${out}03_fairy_tern_germline_filtered.bcf \
 	${out}02_fairy_tern_genotypes.bcf
 
-bcftools view -S ../smoove/AU_samples.tsv -i 'FILTER=="PASS" & SVTYPE == "DEL"' 03_fairy_tern_germline_filtered.bcf | bcftools view -i 'N_PASS(GT == "AA") = 15' -O z -o AU_filtered.vcf.gz
+delly filter -f germline --pass -m 50 -o ${out}04_fairy_tern_minSize50bp_filtered.bcf \
+	${out}02_fairy_tern_genotypes.bcf
 
-bcftools view -S ../smoove/TI_samples.tsv -i 'FILTER=="PASS" & SVTYPE == "DEL"' 03_fairy_tern_germline_filtered.bcf | bcftools view -i 'N_PASS(GT == "AA") = 11' -O z -o TI_filtered.vcf.gz
+delly filter -f germline --pass -m 300 -o ${out}05_fairy_tern_minSize300bp_filtered.bcf \
+	${out}02_fairy_tern_genotypes.bcf
 
-tabix ${out}${pop}_fixed_DEL.vcf.gz
+bcfools view -t $target -i '(SVTYPE = "INS")' \
+	-O b -o ${out}INS.bcf \
+	${out}03_fairy_tern_germline_filtered.bcf
+bcftools view -t $target -i '(SVTYPE = "DEL")' \
+    -O b -o ${out}DEL.bcf \
+	${out}04_fairy_tern_minSize50bp_filtered.bcf
+bcftools view -t $target -i '(SVTYPE = "INV" | SVTYPE = "DUP")' \
+    -O b -o ${out}INV_DUP.bcf \
+	${out}05_fairy_tern_minSize300bp_filtered.bcf
 
-bcftools isec ${out}TI_fixed_DEL.vcf.gz ${out}AU_fixed_DEL.vcf.gz -p ${out}
+bcftools index ${out}INS.bcf
+bcftools index ${out}DEL.bcf
+bcftools index ${out}INV_DUP.bcf
+
+bcftools concat -a -O v -o 06_delly_SVfilter.vcf ${out}INS.bcf ${out}DEL.bcf ${out}INV_DUP.bcf
+
+bcftools view -i '(N_PASS(GT!="mis") = 26)' -O v -o 07_delly_genofilter.vcf 06_delly_SVfilter.vcf
 ```
-Now we are left with the fixed deletions that are private to each population and shared, spoiler alert there are none.
-
 ## SV summary
-
+Once the final SV data was filtered for, number of variable private and shared as well as fixed private and shared SVs were found as per:
 ```
+bcftools view -S ${out}AU_samples.tsv ${out}07_delly_genofilter.vcf | \
+    bcftools view -i 'GT="alt"' \
+    -O z -o ${out}pops/AU_variable.vcf.gz
 
+bcftools view -S ${out}TI_samples.tsv ${out}07_delly_genofilter.vcf | \
+    bcftools view -i 'GT="alt"' \
+    -O z -o ${out}pops/TI_variable.vcf.gz
+
+bcftools index ${out}pops/AU_variable.vcf.gz
+bcftools index ${out}pops/TI_variable.vcf.gz
+```
+The proportion of these variants fixed in each population were found with:
+```
+bcftools isec ${out}pops/AU_variable.vcf.gz ${out}pops/TI_variable.vcf.gz -p ${out}pops/
+
+mv ${out}pops/0000.vcf ${out}pops/AU_private_variable.vcf
+mv ${out}pops/0001.vcf ${out}pops/TI_private_variable.vcf
+mv ${out}pops/0002.vcf ${out}pops/AU_shared_variable.vcf
+mv ${out}pops/0003.vcf ${out}pops/TI_shared_variable.vcf
+
+bgzip ${out}pops/AU_shared_variable.vcf
+bgzip ${out}pops/TI_shared_variable.vcf
+bcftools index ${out}pops/AU_shared_variable.vcf.gz
+bcftools index ${out}pops/TI_shared_variable.vcf.gz
+
+bcftools merge -m id --threads 24 -O z -o ${out}pops/shared_merged.vcf.gz ${out}pops/AU_shared_variable.vcf.gz ${out}pops/TI_shared_variable.vcf.gz
+
+bcftools query -i 'N_PASS(GT=="AA")=15' -f '%SVTYPE\n' ${out}pops/AU_private_variable.vcf | sort | uniq -c
+bcftools query -i 'N_PASS(GT=="AA")=11' -f '%SVTYPE\n' ${out}pops/TI_private_variable.vcf | sort | uniq -c
+bcftools query -i 'N_PASS(GT=="AA")=26' -f '%SVTYPE\n' ${out}pops/shared_merged.vcf.gz | sort | uniq -c
 ```

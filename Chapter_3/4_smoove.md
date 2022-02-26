@@ -113,58 +113,37 @@ bcftools query -i '(MERR / N_PASS(GT!="mis")) <=0.2' -f '%CHROM\t%POS\t%END\t%SV
 ## Lineage Comparisons
 
 ```
-mkdir -p ${out}lineage_comparisons
+mkdir -p ${out}lineage_comparisons/{SVfiltered,unfiltered}
 
-bcftools view -s Richard_Henry ${out}05_smoove_genofiltered_trio.vcf | bcftools view -i 'GT!="RR" & GT!="mis"' -O z -o ${out}lineage_comparisons/RH_variants.vcf.gz
-bcftools view -s ^Richard_Henry,Kuia,Gulliver,Sinbad,Adelaide,Henry,Marian,Gertrude ${out}05_delly_genofiltered_trio.vcf | bcftools view -i 'GT!="RR" & GT!="mis"' -O z -o ${out}lineage_comparisons/SI_variants.vcf.gz
+bcftools view -s Richard_Henry ${out}01_smoove_unfiltered_trio.vcf | bcftools view -i 'GT=="alt"' -O z -o ${out}lineage_comparisons/unfiltered/RH_unfiltered_variants.vcf.gz
+bcftools view -s ^Richard_Henry,Kuia,Gulliver,Sinbad,Adelaide,Henry,Marian,Gertrude ${out}01_smoove_unfiltered.vcf | bcftools view -i 'GT!="RR" & GT!="mis"' -O z -o ${out}lineage_comparisons/SI_variants.vcf.gz
 
-tabix ${out}lineage_comparisons/RH_variants.vcf.gz
-tabix ${out}lineage_comparisons/SI_variants.vcf.gz
+bcftools index ${out}lineage_comparisons/unfiltered/RH_unfiltered_variants.vcf.gz
+bcftools index ${out}lineage_comparisons/unfiltered/SI_unfiltered_variants.vcf.gz
 
-bcftools isec ${out}lineage_comparisons/RH_variants.vcf.gz \
-    ${out}lineage_comparisons/SI_variants.vcf.gz \
-    -p ${out}lineage_comparisons/
+bcftools isec ${out}lineage_comparisons/unfiltered/RH_unfiltered_variants.vcf.gz \
+    ${out}lineage_comparisons/unfiltered/SI_unfiltered_variants.vcf.gz \
+    -p ${out}lineage_comparisons/unfiltered/
 ```
 Summarising numbers of SVs per individual
 ```
 bcftools view -h $${out}05_delly_genofiltered_trio.vcf | grep CHROM | tr "\t" "\n" | tail -n 169 > ${out}samples.txt
-bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0000.vcf > ${out}lineage_comparisons/Fiordland_sites.txt
-bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0001.vcf > ${out}lineage_comparisons/SI_sites.txt
-bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0002.vcf > ${out}lineage_comparisons/shared_sites.txt
+bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0000.vcf > ${out}lineage_comparisons/Fiordland_unfiltered_private_sites.txt
+bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0001.vcf > ${out}lineage_comparisons/SI_unfiltered_private_sites.txt
+bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0002.vcf > ${out}lineage_comparisons/shared_unfiltered_sites.txt
 ```
 while read -r line
     do
-    echo "Counting SVs for ${line}..."
-    si_del=$(bcftools view -T ${out}lineage_comparisons/SI_sites.txt -s ${line} ${out}bwa_smoove_filtered_trios.vcf | bcftools query -i 'SVTYPE=="DEL" & GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    si_dup=$(bcftools view -T ${out}lineage_comparisons/SI_sites.txt -s ${line} ${out}bwa_smoove_filtered_trios.vcf | bcftools query -i 'SVTYPE=="DUP" & GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    si_ins=$(bcftools view -T ${out}lineage_comparisons/SI_sites.txt -s ${line} ${out}bwa_smoove_filtered_trios.vcf | bcftools query -i 'SVTYPE=="INS" & GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    si_inv=$(bcftools view -T ${out}lineage_comparisons/SI_sites.txt -s ${line} ${out}bwa_smoove_filtered_trios.vcf | bcftools query -i 'SVTYPE=="INV" & GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    sh_del=$(bcftools view -T ${out}lineage_comparisons/shared_sites.txt -s ${line} ${out}bwa_smoove_filtered_trios.vcf | bcftools query -i 'SVTYPE=="DEL" & GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    sh_dup=$(bcftools view -T ${out}lineage_comparisons/shared_sites.txt -s ${line} ${out}bwa_smoove_filtered_trios.vcf | bcftools query -i 'SVTYPE=="DUP" & GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    sh_ins=$(bcftools view -T ${out}lineage_comparisons/shared_sites.txt -s ${line} ${out}bwa_smoove_filtered_trios.vcf | bcftools query -i 'SVTYPE=="INS" & GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    sh_inv=$(bcftools view -T ${out}lineage_comparisons/shared_sites.txt -s ${line} ${out}bwa_smoove_filtered_trios.vcf | bcftools query -i 'SVTYPE=="INV" & GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    rh_del=$(bcftools view -T ${out}lineage_comparisons/Fiordland_sites.txt -s ${line} ${out}bwa_smoove_filtered_trios.vcf | bcftools query -i 'SVTYPE=="DEL" & GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    rh_dup=$(bcftools view -T ${out}lineage_comparisons/Fiordland_sites.txt -s ${line} ${out}bwa_smoove_filtered_trios.vcf | bcftools query -i 'SVTYPE=="DUP" & GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    rh_ins=$(bcftools view -T ${out}lineage_comparisons/Fiordland_sites.txt -s ${line} ${out}bwa_smoove_filtered_trios.vcf | bcftools query -i 'SVTYPE=="INS" & GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    rh_inv=$(bcftools view -T ${out}lineage_comparisons/Fiordland_sites.txt -s ${line} ${out}bwa_smoove_filtered_trios.vcf | bcftools query -i 'SVTYPE=="INV" & GT!="RR" & GT!="mis"' -f '%SVTYPE\n' | wc -l)
-    printf "${line}\tDeletions\t${si_del}\tsmoove_SI\n${line}\tDuplications\t${si_dup}\tsmoove_SI\n${line}\tInsertions\t${si_ins}\tsmoove_SI\n${line}\tInversions\t${si_inv}\tsmoove_SI\n" >> ${out}lineage_comparisons/smoove_indiv_SVtypecounts.tsv
-    printf "${line}\tDeletions\t${sh_del}\tsmoove_shared\n${line}\tDuplications\t${sh_dup}\tsmoove_shared\n${line}\tInsertions\t${sh_ins}\tsmoove_shared\n${line}\tInversions\t${sh_inv}\tsmoove_shared\n" >> ${out}lineage_comparisons/smoove_indiv_SVtypecounts.tsv
-    printf "${line}\tDeletions\t${rh_del}\tsmoove_RH\n${line}\tDuplications\t${rh_dup}\tsmoove_RH\n${line}\tInsertions\t${rh_ins}\tsmoove_RH\n${line}\tInversions\t${rh_inv}\tsmoove_RH\n" >> ${out}lineage_comparisons/smoove_indiv_SVtypecounts.tsv
-done < ${out}samples.txt
-
-while read -r line
-    do
-    echo "Counting SVs for ${line}..."
-    si=$(bcftools view -T ${out}lineage_comparisons/SI_sites.txt -s ${line} ${out}05_delly_genofiltered_trio.vcf  | bcftools query -i 'GT!="RR" & GT!="mis"' -f '%SVTYPE\t%SVLEN\n' | wc -l)
-    sh=$(bcftools view -T ${out}lineage_comparisons/shared_sites.txt -s ${line} ${out}05_delly_genofiltered_trio.vcf  | bcftools query -i 'GT!="RR" & GT!="mis"' -f '%SVTYPE\t%SVLEN\n' | wc -l)
-    rh=$(bcftools view -T ${out}lineage_comparisons/Fiordland_sites.txt -s ${line} ${out}05_delly_genofiltered_trio.vcf  | bcftools query -i 'GT!="RR" & GT!="mis"' -f '%SVTYPE\t%SVLEN\n' | wc -l)
-    printf "${line}\t${si}\tsmoove_SI\n" >> ${out}lineage_comparisons/smoove_indiv_SVcounts.tsv
-    printf "${line}\t${sh}\tsmoove_shared\n" >> ${out}lineage_comparisons/smoove_indiv_SVcounts.tsv
-    printf "${line}\t${rh}\tsmoove_RH\n" >> ${out}lineage_comparisons/smoove_indiv_SVcounts.tsv
-    bcftools view -T ${out}lineage_comparisons/SI_sites.txt -s ${line} ${out}05_delly_genofiltered_trio.vcf | bcftools query -i 'GT!= "RR" & GT!="mis"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\tsmoove_SI\n' >> detailed_smoove_summary.tsv
-    bcftools view -T ${out}lineage_comparisons/shared_sites.txt -s ${line} ${out}05_delly_genofiltered_trio.vcf | bcftools query -i 'GT!= "RR" & GT!="mis"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\tsmoove_shared\n' >> detailed_smoove_summary.tsv
-    bcftools view -T ${out}lineage_comparisons/Fiordland_sites.txt -s ${line} ${out}05_delly_genofiltered_trio.vcf | bcftools query -i 'GT!= "RR" & GT!="mis"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\tsmoove_RH\n' >> detailed_smoove_summary.tsv
-done < ${out}samples.txt
+    indiv=$(echo $line | awk '{print $1}')
+    gen=$(echo $line | awk '{print $2}')
+    echo "Counting SVs for $indiv..."
+    bcftools view -s ${indiv} -R lineage_comparisons/unfiltered/Fiordland_unfiltered_private_sites.txt 01_smoove_unfiltered.vcf.gz | \
+        bcftools query -i 'GT=="alt"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\tFiordland_unfiltered_lineage\n' >> smoove_lineage_counts.tsv
+    bcftools view -s ${indiv} -R lineage_comparisons/unfiltered/Rakiura_unfiltered_private_sites.txt 01_smoove_unfiltered.vcf.gz | \
+        bcftools query -i 'GT=="alt"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\tRakiura_unfiltered_lineage\n' >> smoove_lineage_counts.tsv
+    bcftools view -s ${indiv} -R lineage_comparisons/unfiltered/Shared_unfiltered_sites.txt 01_smoove_unfiltered.vcf.gz | \
+        bcftools query -i 'GT=="alt"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\tShared_unfiltered_lineage\n' >> smoove_lineage_counts.tsv
+done < /kakapo-data/metadata/generations.tsv
 
 while read -r line
     do

@@ -41,23 +41,42 @@ smoove paste --name ${out}02_fairy_tern.genos ${data}genotypes/*.vcf.gz
 ```
 
 ## SV Filtering
-Finally, SVs were sorted into population specific data sets, filtered to include fixed deletions only and then the private variants identified. 
-
+Finally, SVs were sorted into population specific data sets, filtered to include variable SVs only and then the number of private and shared variants were identified. 
 ```
-bcftools view -S ${out}AU_samples.tsv -i 'SVTYPE=="DEL" & (FMT/DHFFC[0:15] < 0.7)' ${out}02_fairy_tern.genos.smoove.square.vcf.gz | \
-    bcftools view -i 'N_PASS(FMT/GT =="AA") = 15' -O z -o ${out}AU_filtered.vcf.gz
+bcftools view -t chroms -i '(SVTYPE = "DEL" & FMT/DHFFC[0-25] < 0.7) | (SVTYPE = "DUP" & FMT/DHBFC[0-25] > 1.3) | (SVTYPE = "INV")' \
+    -O z -o ${out}03_fairy_tern_SVfiltered.vcf.gz ${out}02_fairy_tern.genos.smoove.square.vcf.gz
 
-bcftools view -S ${out}TI_samples.tsv -i 'SVTYPE=="DEL" & (FMT/DHFFC[15:25] < 0.7)' ${out}02_fairy_tern.genos.smoove.square.vcf.gz | \
-    bcftools view -i 'N_PASS(FMT/GT =="AA") = 11' -O z -o ${out}TI_filtered.vcf.gz
+bcftools view -i 'N_PASS(GT="mis")=0' -O ${out}04_fairy_tern_filtered_missing.vcf.gz ${out}03_fairy_tern_SVfiltered.vcf.gz
 
-bcftools view -S TI_samples.tsv -i 'SVTYPE == "DEL" & (FMT/DHFFC[15-25] < 0.7)' 02_fairy_tern.genos.smoove.square.vcf.gz | bcftools view -i 'FMT/GT[0:10] == "AA"' -O z -o TI_filtered.vcf.gz
+bcftools view -S ${out}AU_samples.tsv ${out}04_fairy_tern_filtered_missing.vcf.gz \
+    bcftools view -i 'GT="alt"' \
+    -O z -o ${out}pops/AU_variable.vcf.gz
 
-tabix ${out}AU_filtered.vcf.gz
-tabix ${out}TI_filtered.vcf.gz
+bcftools view -S ${out}TI_samples.tsv ${out}04_fairy_tern_filtered_missing.vcf.gz \
+    bcftools view -i 'GT="alt")' \
+    -O z -o ${out}pops/TI_variable.vcf.gz
 
-bcftools isec ${out}AU_filtered.vcf.gz ${out}TI_filtered.vcf.gz -p ${out}
+bcftools index ${out}pops/AU_variable.vcf.gz
+bcftools index ${out}pops/TI_variable.vcf.gz
 ```
+The proportion of these variants fixed in each population were found with:
+```
+mv ${out}pops/0000.vcf ${out}pops/AU_private_variable.vcf
+mv ${out}pops/0001.vcf ${out}pops/TI_private_variable.vcf
+mv ${out}pops/0003.vcf ${out}pops/TI_shared_variable.vcf
+mv ${out}pops/0002.vcf ${out}pops/AU_shared_variable.vcf
 
+bgzip ${out}pops/AU_shared_variable.vcf
+bcftools index ${out}pops/AU_shared_variable.vcf.gz
+bgzip ${out}pops/TI_shared_variable.vcf
+bcftools index ${out}pops/TI_shared_variable.vcf.gz
+
+bcftools merge -m id --threads 24 -O z -o shared_merged.vcf.gz AU_shared_variable.vcf.gz TI_shared_variable.vcf.gz
+
+bcftools query -i 'N_PASS(GT=="AA")=15' -f '%SVTYPE\n' ${out}pops/AU_private_variable.vcf | sort | uniq -c
+bcftools query -i 'N_PASS(GT=="AA")=11' -f '%SVTYPE\n' ${out}pops/TI_private_variable.vcf | sort | uniq -c
+bcftools query -i 'N_PASS(GT=="AA")=26' -f '%SVTYPE\n' ${out}pops/shared_merged.vcf.gz | sort | uniq -c
+```
 ## SV Summary
 
 ```

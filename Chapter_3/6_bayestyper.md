@@ -325,17 +325,62 @@ done < /kakapo-data/metadata/generations.tsv
 ```
 mkdir -p ${out}bayestyper/lineage_{batch,joint}_comparisons
 
-bcftools view -s Richard_Henry ${out}bayestyper/joint_filtered/09_joint_filtered_trios_annotated.vcf | \
-    bcftools view -i 'GT!="RR" & GT!="mis"' -O z -o ${out}bayestyper/lineage_joint_comparisons/RH_variants.vcf.gz
+bcftools view -s Richard_Henry /kakapo-data/bwa/manta/raw_variants/batch_total.vcf.gz | \
+    bcftools view -i 'GT=="alt"' -O z -o ${out}bayestyper/lineage_batch_comparisons/unfiltered/RH_unfiltered_variants.vcf.gz
+bcftools view -s Richard_Henry /kakapo-data/bwa/manta/raw_variants/joint_total.vcf.gz | \
+    bcftools view -i 'GT=="alt"' -O z -o ${out}bayestyper/lineage_joint_comparisons/unfiltered/RH_unfiltered_variants.vcf.gz
 
-bcftools view -s ^Richard_Henry,Kuia,Gulliver,Sinbad,Adelaide,Henry,Marian,Gertrude \
-    ${out}/bayestyper/joint_filtered/09_joint_filtered_trios_annotated.vcf | bcftools view -i 'GT!="RR" & GT!="mis"' \
-    -O z -o ${out}bayestyper/lineage_joint_comparisons/SI_variants.vcf.gz
+bcftools view -s ^Richard_Henry,Kuia,Gulliver,Sinbad,Adelaide,Henry,Marian,Gertrude /kakapo-data/bwa/manta/raw_variants/batch_total.vcf.gz |\
+    bcftools view -i 'GT=="alt"' -O z -o ${out}bayestyper/lineage_batch_comparisons/unfiltered/SI_unfiltered_variants.vcf.gz
+bcftools view -s ^Richard_Henry,Kuia,Gulliver,Sinbad,Adelaide,Henry,Marian,Gertrude /kakapo-data/bwa/manta/raw_variants/joint_total.vcf.gz |\
+    bcftools view -i 'GT=="alt"' -O z -o ${out}bayestyper/lineage_joint_comparisons/unfiltered/SI_unfiltered_variants.vcf.gz
 
-tabix ${out}bayestyper/lineage_joint_comparisons/RH_variants.vcf.gz
-tabix ${out}bayestyper/lineage_joint_comparisons/SI_variants.vcf.gz
+bcftools index ${out}bayestyper/lineage_batch_comparisons/unfiltered/RH_unfiltered_variants.vcf.gz
+bcftools index ${out}bayestyper/lineage_batch_comparisons/unfiltered/SI_unfiltered_variants.vcf.gz
 
-bcftools isec ${out}bayestyper/lineage_joint_comparisons/RH_variants.vcf.gz \
-    ${out}bayestyper/lineage_joint_comparisons/SI_variants.vcf.gz \
-    -p ${out}bayestyper/lineage_joint_comparisons/
+bcftools index ${out}bayestyper/lineage_joint_comparisons/unfiltered/RH_unfiltered_variants.vcf.gz
+bcftools index ${out}bayestyper/lineage_joint_comparisons/unfiltered/SI_unfiltered_variants.vcf.gz
+
+bcftools isec ${out}bayestyper/lineage_batch_comparisons/unfiltered/RH_unfiltered_variants.vcf.gz \
+    ${out}bayestyper/lineage_batch_comparisons/unfiltered/SI_unfiltered_variants.vcf.gz \
+    -p ${out}bayestyper/lineage_batch_comparisons/unfiltered/
+
+bcftools isec ${out}bayestyper/lineage_joint_comparisons/unfiltered/RH_unfiltered_variants.vcf.gz \
+    ${out}bayestyper/lineage_joint_comparisons/unfiltered/SI_unfiltered_variants.vcf.gz \
+    -p ${out}bayestyper/lineage_joint_comparisons/unfiltered/
+
+bcftools query -f '%CHROM\t%POS\n' \
+    ${out}bayestyper/lineage_batch_comparisons/unfiltered/0000.vcf > ${out}bayestyper/lineage_batch_comparisons/unfiltered/Fiordland_unfiltered_private_sites.txt
+bcftools query -f '%CHROM\t%POS\n' \
+    ${out}bayestyper/lineage_batch_comparisons/unfiltered/0001.vcf > ${out}bayestyper/lineage_batch_comparisons/unfiltered/Rakiura_unfiltered_private_sites.txt
+bcftools query -f '%CHROM\t%POS\n' \
+    ${out}bayestyper/lineage_batch_comparisons/unfiltered/0002.vcf > ${out}bayestyper/lineage_batch_comparisons/unfiltered/Shared_unfiltered_sites.txt
+
+bcftools query -f '%CHROM\t%POS\n' \
+    ${out}bayestyper/lineage_joint_comparisons/unfiltered/0000.vcf > ${out}bayestyper/lineage_joint_comparisons/unfiltered/Fiordland_unfiltered_private_sites.txt
+bcftools query -f '%CHROM\t%POS\n' \
+    ${out}bayestyper/lineage_joint_comparisons/unfiltered/0001.vcf > ${out}bayestyper/lineage_joint_comparisons/unfiltered/Rakiura_unfiltered_private_sites.txt
+bcftools query -f '%CHROM\t%POS\n' \
+    ${out}bayestyper/lineage_joint_comparisons/unfiltered/0002.vcf > ${out}bayestyper/lineage_joint_comparisons/unfiltered/Shared_unfiltered_sites.txt
+
+while read -r line
+    do
+    indiv=$(echo $line | awk '{print $1}')
+    gen=$(echo $line | awk '{print $2}')
+    echo "Counting SVs for $indiv..."
+    bcftools view -s ${indiv} -R ${out}bayestyper/lineage_batch_comparisons/unfiltered/Fiordland_unfiltered_private_sites.txt raw_variants/batch_total.vcf.gz | bcftools query -i 'GT=="alt"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\tFiordland_unfiltered_lineage\n' >> ${out}mantaB_lineage_counts.tsv
+    bcftools view -s ${indiv} -R ${out}bayestyper/lineage_batch_comparisons/unfiltered/Rakiura_unfiltered_private_sites.txt raw_variants/batch_total.vcf.gz | bcftools query -i 'GT=="alt"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\tRakiura_unfiltered_lineage\n' >> ${out}mantaB_lineage_counts.tsv
+    bcftools view -s ${indiv} -R ${out}bayestyper/lineage_batch_comparisons/unfiltered/Shared_unfiltered_sites.txt raw_variants/batch_total.vcf.gz | bcftools query -i 'GT=="alt"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\tShared_unfiltered_lineage\n' >> ${out}mantaB_lineage_counts.tsv
+done < /kakapo-data/metadata/generations.tsv
+
+while read -r line
+    do
+    indiv=$(echo $line | awk '{print $1}')
+    gen=$(echo $line | awk '{print $2}')
+    echo "Counting SVs for $indiv..."
+    bcftools view -s ${indiv} -R ${out}bayestyper/lineage_joint_comparisons/unfiltered/Fiordland_unfiltered_private_sites.txt ${out}raw_variants/joint_total.vcf.gz | bcftools query -i 'GT=="alt"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\tFiordland_unfiltered_lineage\n' >> ${out}mantaJ_lineage_counts.tsv
+    bcftools view -s ${indiv} -R ${out}bayestyper/lineage_joint_comparisons/unfiltered/Rakiura_unfiltered_private_sites.txt ${out}raw_variants/joint_total.vcf.gz | bcftools query -i 'GT=="alt"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\tRakiura_unfiltered_lineage\n' >> ${out}mantaJ_lineage_counts.tsv
+    bcftools view -s ${indiv} -R ${out}bayestyper/lineage_joint_comparisons/unfiltered/Shared_unfiltered_sites.txt ${out}raw_variants/joint_total.vcf.gz | bcftools query -i 'GT=="alt"' -f '[%SAMPLE]\t%CHROM\t%POS\t%END\t%SVTYPE\tShared_unfiltered_lineage\n' >> ${out}mantaJ_lineage_counts.tsv
+done < /kakapo-data/metadata/generations.tsv
+
 ```
