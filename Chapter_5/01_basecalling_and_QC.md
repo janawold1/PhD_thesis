@@ -1,5 +1,5 @@
 # ONT basecalling, read quality and trimming
-Raw MinION fast5 files were basecalled using guppy v6.0.1 under the super 
+Raw MinION fast5 files were basecalled using guppy v6.0.1 under the super high accuracy model.
 ```
 config=dna_r9.4.1_450bps_sup.cfg
 guppy_basecaller -i ${data} \
@@ -27,4 +27,16 @@ for fq in ${data}fastq/*.fastq.gz
     done &
 done
 conda deactivate nanofilt
+```
+## Read statistics
+```
+for indiv in Bella Bill Blades C1 C2 Gulliver Kuia Margaret-Maree Rangi Sass Smoko Sue
+    do
+    echo "Running NanoPlot for ${indiv}..."
+     NanoPlot -t 24 -o ${data}NanoPlot/$indiv \
+        -f pdf --N50 \
+        --title "${indiv} q10 5kb trim" \
+        -p ${indiv}_q10_5kbtrim \
+        --fastq trimmed/${indiv}_q10_5kbtrim.fastq.gz
+done
 ```

@@ -7,20 +7,22 @@ Three pipelines were used for SV discovery, Delly, Manta and SMOOVE. SV discover
 ## 1 Read alignment with BWA
 Reads were aligned to the kākāpō reference genome (VGP) using [BWA](http://bio-bwa.sourceforge.net/). The W sex chromosome (present in females) was removed prior to alignments of males as the W is highly repetitive, and may contain regions that would result in misalignment of reads. Other programs used in this step include: [SAMtools](https://github.com/samtools/samtools)
 
-## 2 Estimates of mapping statistics
+## 2 Mapping statistics
 Programs used [Mosdepth](https://github.com/brentp/mosdepth), [qualimap](http://qualimap.conesalab.org/) and [SAMtools](https://github.com/samtools/samtools)
 
 ## 3 Structural Variant discovery using [Delly](https://github.com/dellytools/delly)
-Called and genotyped SVs with Delly. Other programs used in this step include [BCFtoools](http://samtools.github.io/bcftools/)
+Called and genotyped SVs with Delly. [BCFtoools](http://samtools.github.io/bcftools/) was also used in this step.
 
 ## 4 Structural Variant discovery using [Smoove](https://github.com/brentp/smoove)
-Called and genotyped SVs with the Smoove pipeline. Other programs used in this step include [BCFtoools](http://samtools.github.io/bcftools/).
-
+Called and genotyped SVs with the Smoove pipeline. [BCFtoools](http://samtools.github.io/bcftools/) was also used in this step.
 ## 5 Structural Variant discovery using [Manta](https://github.com/Illumina/manta)
-Called SVs using two strategies 1) Joint and 2) Batched. Other programs used include BCFtools
+Called SVs using two strategies 1) Joint and 2) Batched. [BCFtoools](http://samtools.github.io/bcftools/) was also used in this step.
 
 ## 6 Genotyping Manta outputs with [BayesTyper](https://github.com/bioinformatics-centre/BayesTyper)
-Genotyped SVs using BayesTyper for both Joint and Batched Manta outputs. Programs used include [BCFtoools](http://samtools.github.io/bcftools/) and [KMC](https://github.com/refresh-bio/KMC)
+Genotyped SVs using BayesTyper for both Joint and Batched Manta outputs. Other programs used included [BCFtoools](http://samtools.github.io/bcftools/) and [KMC](https://github.com/refresh-bio/KMC)
 
 ## 7 Identified consensus SV calls with [SURVIVOR](https://github.com/fritzsedlazeck/SURVIVOR)
-Identified overlapping SVs with SURVIVOR. Other progams used:  [BCFtoools](http://samtools.github.io/bcftools/)
+Identified overlapping SVs with SURVIVOR. [BCFtoools](http://samtools.github.io/bcftools/) was also used in this step.
+
+## 8 Exploring SV data in R
+Plotted SV size distributions, SV type frequency, relative frequency per individual taking into account generation and lineage and assessed population structure with principal component analyses. 
