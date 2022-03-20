@@ -100,7 +100,7 @@ done
 ```
 Extracting sub-graphs for each TLR.
 ```
-odgi extract --threads 24 --progress -i ${graph_og} -o TLR1_subgraph.og -r Jane#chromosome_7:22900000-24009134 -E
+odgi extract --threads 24 --progress -i ${graph_og} -o TLR1_subgraph.og -r Jane#chromosome_7:24009134-25000000 -E
 odgi extract --threads 24 --progress -i ${graph_og} -o TLR2_subgraph.og -r Jane#chromosome_7:44500000-46500000 -E
 odgi extract --threads 24 --progress -i ${graph_og} -o TLR3_subgraph.og -r Jane#chromosome_7:32400000-34400000 -E
 odgi extract --threads 24 --progress -i ${graph_og} -o TLR6_subgraph.og -r Jane#chromosome_7:22900000-24009134 -E
@@ -119,4 +119,16 @@ odgi view -i TLR1_subgraph.og -g > TLR1_subgraph.gfa
 odgi view -i TLR2_subgraph.og -g > TLR2_subgraph.gfa
 odgi view -i TLR3_subgraph.og -g > TLR3_subgraph.gfa
 odgi view -i TLR6_subgraph.og -g > TLR6_subgraph.gfa
+```
+Estimating depth along each of the TLRs
+```
+odgi depth -i TLR1_subgraph.og -r Jane#chromosome_7:24008847-25000092 | bedtools makewindows -b /dev/stdin -w 1000 > TLR1.w1kb.bed
+odgi depth -i TLR2_subgraph.og -r Jane#chromosome_7:44499742-46500132 | bedtools makewindows -b /dev/stdin -w 1000 > TLR2.w1kb.bed
+odgi depth -i TLR3_subgraph.og -r Jane#chromosome_7:32399822-34400344 | bedtools makewindows -b /dev/stdin -w 1000 > TLR3.w1kb.bed
+odgi depth -i TLR6_subgraph.og -r Jane#chromosome_7:22899873-24009152 | bedtools makewindows -b /dev/stdin -w 1000 > TLR6.w1kb.bed
+
+odgi depth -i TLR1_subgraph.og -b ${graph_dir}TLR1.w1kb.bed --threads 2 | bedtools sort > ${graph_dir}TLR1.depth.w1kb.bed
+odgi depth -i TLR2_subgraph.og -b ${graph_dir}TLR2.w1kb.bed --threads 2 | bedtools sort > ${graph_dir}TLR2.depth.w1kb.bed
+odgi depth -i TLR3_subgraph.og -b ${graph_dir}TLR3.w1kb.bed --threads 2 | bedtools sort > ${graph_dir}TLR3.depth.w1kb.bed
+odgi depth -i TLR6_subgraph.og -b ${graph_dir}TLR6.w1kb.bed --threads 2 | bedtools sort > ${graph_dir}TLR6.depth.w1kb.bed
 ```
