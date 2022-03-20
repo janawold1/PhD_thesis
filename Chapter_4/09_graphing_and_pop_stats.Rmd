@@ -90,13 +90,7 @@ ggplot(noPrune_het, aes(x = Population, y = Fraction_Heto, fill = Population)) +
     theme_light()
 
 ```
-### Nucleotide diversity 
-```{r pixy mean nucleotide diversity, echo=FALSE}
-pixy_AU <- read.table("pixy/100kb_window/Pruned_MAF/AU/AU_MAF_100kb_window_pi.txt", header = TRUE, sep = "\t")
-pixy_TI <- read.table("pixy/100kb_window/Pruned_MAF/TI/TI_MAF_100kb_window_pi.txt", header = TRUE, sep = "\t")
 
-
-```
 ### Pairwise Fst
 ```{r Pairwise Fst, echo=FALSE}
 Fst <- genet.dist(maf_gind, method = "WC84")

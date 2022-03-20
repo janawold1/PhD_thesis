@@ -17,3 +17,4 @@ A population genomics study of the threatened Australian fairy tern (*Sternula n
 Brief summary of pangenome chapter
 
 ## Chapter 6: General Discussion
+Finally, I close with a summary of results and identify future directions for research.
