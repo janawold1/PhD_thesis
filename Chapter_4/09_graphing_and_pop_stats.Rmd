@@ -1,0 +1,366 @@
+---
+title: "Fairy Tern Population Analysis"
+author: "Jana R. Wold"
+date: "08/02/2022"
+output: html_document
+---
+# Overview
+Here is how I estimated general population diversity statistics for the Australian fairy tern and tara iti. Initially, the filtered VCF was loaded using the vcfR package. The data was then converted to a genind object and population information annotated to the genind object. 
+
+```{r setup, include=FALSE}
+library(adegenet)
+library(hierfstat)
+library(tidyverse)
+library(vcfR)
+
+setwd("G:/My Drive/Thesis Write-up and Reporting/Chapter 4 - Tara iti Genetics/Chapter_Scripts/Population_stats")
+
+#install.packages("devtools")
+#devtools::install_github("G-Thomson/Manu")
+library(Manu)
+
+pal <- get_pal("Kotare")
+get_pal("Kotare")
+print_pal(pal)
+
+```
+
+## Assessing SNP calling outputs
+First had a look at the SNPs called with ```bcftools mpileup```. Basic summary stats were initially estimated with ```vcftools``` and outputs visualised in the [4_SNP_filtering_trial.md](https://github.com/janawold1/PhD_thesis/blob/main/Chapter_4/4_SNP_filtering_trial.md).
+
+```{r load filtered objects, include=FALSE}
+maf <- read.vcfR("vcf_inputs/global_maf.vcf")
+noprune <- read.vcfR("vcf_inputs/global_MAF_noPrune.vcf.gz")
+
+delly <- read.vcfR("vcf_inputs/07_delly_genofilter.vcf")
+smoove <- read.vcfR("vcf_inputs/03_smoove_SVfiltered.vcf.gz")
+
+maf_gind <- vcfR2genind(maf)
+noprune_gind <- vcfR2genind(noprune)
+delly_gind <- vcfR2genind(delly)
+smoove_gind <- vcfR2genind(smoove)
+
+pop(maf_gind) <- as.factor(c("AU", "AU", "AU", "AU", "AU", "AU", "AU", "AU", "AU", "AU", "AU", "AU", "AU", "AU", "AU", "TI", "TI", "TI", "TI", "TI", "TI", "TI", "TI", "TI", "TI", "TI"))
+pop(noprune_gind) <- maf_gind$pop
+pop(delly_gind) <- maf_gind$pop
+pop(smoove_gind) <- maf_gind$pop
+
+het <- read.table("total_het.tsv", header = TRUE, sep = "\t")
+ldprun_het <- het [ het$Data == "LDpruned",]
+noPrune_het <- het [ het$Data == "noPrune",]
+```
+
+## Summary Statistics
+After data was loaded and the environment initialized, basic diversity and differentiation statistics were esmiated using ```basic.stats()```. 
+
+First making sure there's the correct number of individuals in each population.
+```{r Population Check, echo = FALSE}
+summary(maf_gind$pop)
+head(ldprun_het)
+head(noPrune_het)
+```
+### Plotting individual heterozygosity and inbreeding coefficients
+```{r Plot VCFtools output, echo=FALSE}
+#pdf("plots/SNP_heterozygosity.pdf")
+ggplot(ldprun_het, aes(x = Population, y = F, fill = Population)) +
+  geom_violin() +
+  labs(x = "Taxa", y = "Individual inbreeding coefficients (F)", title = "Individual inbreeding coefficients in pruned SNPs") +
+  theme(axis.text = element_text(size = 14)) +
+  scale_fill_manual(labels = c("AU" = "Australian fairy tern", "TI" = "tara iti"), values = c("AU" = "#E5BF86","TI" = "#287DAB")) +
+    theme_light()
+ggplot(ldprun_het, aes(x = Population, y = Fraction_Heto, fill = Population)) +
+  geom_violin() +
+  labs(x = "Taxa", y = "Fraction of heterozygous sites", title = "Individual observed heterozygosity in pruned SNPs") +
+  theme(axis.text = element_text(size = 14)) +
+  scale_fill_manual(labels = c("AU" = "Australian fairy tern", "TI" = "tara iti"), values = c("AU" = "#E5BF86","TI" = "#287DAB")) +
+    theme_light()
+#dev.off()
+
+ggplot(noPrune_het, aes(x = Population, y = F, fill = Population)) +
+  geom_violin() +
+  labs(x = "Taxa", y = "Individual inbreeding coefficients (F)", title = "Individual inbreeding coefficients in unpruned SNPs") +
+  theme(axis.text = element_text(size = 14)) +
+  scale_fill_manual(labels = c("AU" = "Australian fairy tern", "TI" = "tara iti"), values = c("AU" = "#E5BF86","TI" = "#287DAB")) +
+    theme_light()
+ggplot(noPrune_het, aes(x = Population, y = Fraction_Heto, fill = Population)) +
+  geom_violin() +
+  labs(x = "Taxa", y = "Number of sites", title = "Individual observed heterozygosity in unpruned SNPs") +
+  theme(axis.text = element_text(size = 14)) +
+  scale_fill_manual(labels = c("AU" = "Australian fairy tern", "TI" = "tara iti"), values = c("AU" = "#E5BF86","TI" = "#287DAB")) +
+    theme_light()
+
+```
+### Nucleotide diversity 
+```{r pixy mean nucleotide diversity, echo=FALSE}
+pixy_AU <- read.table("pixy/100kb_window/Pruned_MAF/AU/AU_MAF_100kb_window_pi.txt", header = TRUE, sep = "\t")
+pixy_TI <- read.table("pixy/100kb_window/Pruned_MAF/TI/TI_MAF_100kb_window_pi.txt", header = TRUE, sep = "\t")
+
+
+```
+### Pairwise Fst
+```{r Pairwise Fst, echo=FALSE}
+Fst <- genet.dist(maf_gind, method = "WC84")
+
+boot_FSt <- boot.ppfst(maf_gind, nboot = 100, quant = c(0.025, 0.975), diploid = TRUE)
+
+Fst %>% round(digits = 4)
+boot_FSt$ll
+boot_FSt$ul
+
+pixyFst <- read.table("pixy/10kb_window/total_MAF_fst.txt", header = TRUE, sep = "\t")
+n <- 26
+
+
+noprune_Fst <- genet.dist(noprune_gind, method = "WC84")
+noprune_Fst %>% round(digits = 4)
+
+delly_Fst <- genet.dist(delly_gind, method = "WC84")
+delly_Fst %>% round(digits = 4)
+
+smoove_Fst <- genet.dist(smoove_gind, method = "WC84")
+smoove_Fst %>% round(digits = 4)
+```
+
+### Plotting Pixy Outputs
+```{r exploring pixy, echo=FALSE}
+inp<-read.table("pixy/100kb_window/total/total_MAF_100kb_window_dxy.txt",sep="\t",header=T)
+
+# Find the chromosome names and order them: first numerical order, then any non-numerical chromosomes
+#   e.g., chr1, chr2, chr22, chrX
+chroms <- unique(inp$chromosome)
+chrOrder <- sort(chroms)
+inp$chrOrder <- factor(inp$chromosome,levels=chrOrder)
+
+# Plot pi for each population found in the input file
+# Saves a copy of each plot in the working directory
+if("avg_pi" %in% colnames(inp)){
+    pops <- unique(inp$pop)
+    for (p in pops){
+        thisPop <- subset(inp, pop == p)
+        # Plot stats along all chromosomes:
+        popPlot <- ggplot(thisPop, aes(window_pos_1, avg_pi, color=chrOrder)) +
+            geom_point()+
+            facet_grid(. ~ chrOrder)+
+            labs(title=paste("Pi for population", p))+
+            labs(x="Position of window start", y="Pi")+
+            scale_color_manual(values=rep(c("black","gray"),ceiling((length(chrOrder)/2))))+
+            theme_classic()+
+            theme(legend.position = "none")
+        ggsave(paste("piplot_", p,".png", sep=""), plot = popPlot, device = "png", dpi = 300)
+        }
+} else {
+    print("Pi not found in this file")
+}
+# Plot Dxy for each combination of populations found in the input file
+# Saves a copy of each plot in the working directory
+if("avg_dxy" %in% colnames(inp)){
+    # Get each unique combination of populations
+    pops <- unique(inp[c("pop1", "pop2")])
+    for (p in 1:nrow(pops)){
+        combo <- pops[p,]
+        thisPop <- subset(inp, pop1 == combo$pop1[[1]] & pop2 == combo$pop2[[1]])
+        # Plot stats along all chromosomes:
+        popPlot <- ggplot(thisPop, aes(window_pos_1, avg_dxy, color=chrOrder)) +
+            geom_point()+
+            facet_grid(. ~ chrOrder)+
+            labs(title=paste("Dxy for", combo$pop1[[1]], "&", combo$pop2[[1]]))+
+            labs(x="Position of window start", y="Dxy")+
+            theme(legend.position = "none")+
+           scale_color_manual(values=rep(c("black","gray"),ceiling((length(chrOrder)/2))))+
+           theme_classic()+
+           theme(legend.position = "none")
+        ggsave(paste("dxyplot_", combo$pop1[[1]], "_", combo$pop2[[1]],".png", sep=""), plot = popPlot, device = "png", dpi = 300)
+    }
+} else {
+    print("Dxy not found in this file")
+}
+```
+
+
+```{r Pixy, echo=FALSE}
+pixy_to_long <- function(pixy_files){
+
+  pixy_df <- list()
+
+  for(i in 1:length(pixy_files)){
+
+    stat_file_type <- gsub(".*_|.txt", "", pixy_files[i])
+
+    if(stat_file_type == "pi"){
+
+      df <- read_delim(pixy_files[i], delim = "\t")
+      df <- df %>%
+        gather(-pop, -window_pos_1, -window_pos_2, -chromosome,
+               key = "statistic", value = "value") %>%
+        rename(pop1 = pop) %>%
+        mutate(pop2 = NA)
+
+      pixy_df[[i]] <- df
+
+
+    } else{
+
+      df <- read_delim(pixy_files[i], delim = "\t")
+      df <- df %>%
+        gather(-pop1, -pop2, -window_pos_1, -window_pos_2, -chromosome,
+               key = "statistic", value = "value")
+      pixy_df[[i]] <- df
+
+    }
+
+  }
+
+  bind_rows(pixy_df) %>%
+    arrange(pop1, pop2, chromosome, window_pos_1, statistic)
+
+}
+
+pixy_folder <- "pixy/100kb_window/Pruned_MAF/AU"
+pixy_files <- list.files(pixy_folder, full.names = TRUE)
+pixy_df <-pixy_to_long(pixy_files)
+
+```
+
+```{r Plotting single chromosome pixy, echo=FALSE}
+# custom labeller for special characters in pi/dxy/fst
+pixy_labeller <- as_labeller(c(avg_pi = "pi",
+                             avg_dxy = "D[XY]",
+                             avg_wc_fst = "F[ST]"),
+                             default = label_parsed)
+
+# plotting summary statistics along a single chromosome
+#pdf("plots/pixy_pruned_chr1_100kbwindow_AU.pdf")
+pixy_df %>%
+  filter(chromosome == 1) %>%
+  filter(statistic %in% c("avg_pi" , "avg_dxy", "avg_wc_fst")) %>%
+  mutate(chr_position = ((window_pos_1 + window_pos_2)/2)/1000000) %>%
+  ggplot(aes(x = chr_position, y = value, color = statistic))+
+  geom_point(size = 0.25)+
+  xlab("Position on Chromosome 1 (Mb)")+
+  ylab("Statistic Value")+
+  facet_grid(statistic ~ .,
+             scales = "free_y", switch = "x", space = "free_x",
+             labeller = labeller(statistic = pixy_labeller,
+                                 value = label_value))+
+  theme_bw()+
+  theme(panel.spacing = unit(0.1, "cm"),
+        strip.background = element_blank(),
+        strip.placement = "outside",
+        legend.position = "none")+
+  scale_x_continuous(expand = c(0, 0))+
+  scale_y_continuous(expand = c(0, 0))+
+  scale_color_brewer(palette = "Set1")
+#dev.off()
+```
+
+
+```{r Plotting whole genome Pixy, echo=FALSE}
+# create a custom labeller for special characters in pi/dxy/fst
+pixy_labeller <- as_labeller(c(avg_pi = "pi",
+                             avg_dxy = "D[XY]",
+                             avg_wc_fst = "F[ST]"),
+                             default = label_parsed)
+
+# plotting summary statistics across all chromosomes
+#pdf("plots/pixy_unpruned_100kb_window_chr1-5.pdf")
+pixy_df %>%
+  mutate(chrom_color_group = case_when(as.numeric(chromosome) %% 
+                                         2 != 0 ~ "even", TRUE ~ "odd" )) %>%
+  mutate(chromosome = factor(chromosome, levels = c(1:6))) %>%
+  filter(statistic %in% c("avg_pi", "avg_dxy", "avg_wc_fst")) %>%
+  ggplot(aes(x = (window_pos_1 + window_pos_2)/2, y = value, color = chrom_color_group))+
+  geom_point(size = 0.25, alpha = 0.5, stroke = 0)+
+  facet_grid(statistic ~ chromosome,
+             scales = "free_y", switch = "x", space = "free_x",
+             labeller = labeller(statistic = pixy_labeller,
+                                 value = label_value))+
+  xlab("Chromsome")+
+  ylab("Statistic Value")+
+  scale_color_manual(values = c("grey50", "black"))+
+  theme_classic()+
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.spacing = unit(0.1, "cm"),
+        strip.background = element_blank(),
+        strip.placement = "outside",
+        legend.position ="none")+
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0,NA))
+#dev.off()
+```
+## Population Structure
+### Unpruned SNP PCA
+```{r indPCA, echo = FALSE}
+x.unpruned <- tab(noprune_gind, freq=TRUE, NA.method="mean")
+
+pca.unpruned <- dudi.pca(x.unpruned, center=TRUE, scale = FALSE)
+
+s.class(pca.unpruned$li, fac=pop(noprune_gind), col=funky(15))
+#pdf("plots/unpruned_snps_PCA.pdf")
+s.class(pca.unpruned$li, fac=pop(noprune_gind), 
+        xax=1, yax=2, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca.unpruned$eig[1:21], posi = "topright", sub="SNP PCA",3,2,3, ratio=.2)
+#dev.off()
+```
+### Pruned SNP PCA
+```{r indPCA, echo = FALSE}
+x <- tab(maf_gind, freq=TRUE, NA.method="mean")
+
+pca <- dudi.pca(x, center=TRUE, scale = FALSE)
+
+s.class(pca$li, fac=pop(maf_gind), col=funky(15))
+#pdf("plots/snps_MAF_PCA.pdf")
+s.class(pca$li, fac=pop(maf_gind), 
+        xax=1, yax=2, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca$eig[1:21], posi = "topright", sub="SNP PCA",3,2,3, ratio=.2)
+#dev.off()
+```
+### Delly PCA
+```{r delly SV based PCA, echo=FALSE}
+x.delly <- tab(delly_gind, freq=TRUE, NA.method="mean")
+
+pca.delly <- dudi.pca(x.delly, center=TRUE, scale=FALSE)
+
+s.class(pca.delly$li, fac=pop(delly_gind), col=funky(15))
+#pdf("plots/delly_x1y2.pdf")
+s.class(pca.delly$li, fac=pop(delly_gind), 
+        xax=1, yax=2, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca.delly$eig[1:23], posi = "topright", sub="Delly PCA",3,2,3, ratio=.2)
+#dev.off()
+```
+### Smoove PCA
+```{r smoove SV based PCA, echo=FALSE}
+x.smoove <- tab(smoove_gind, freq=TRUE, NA.method="mean")
+
+pca.smoove <- dudi.pca(x.smoove, center=TRUE, scale=FALSE)
+
+s.class(pca.smoove$li, fac=pop(smoove_gind), col=funky(15))
+#pdf("plots/smoove_x1y2_PCA.pdf")
+s.class(pca.smoove$li, fac=pop(smoove_gind), 
+        xax=1, yax=2, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca.smoove$eig[1:23], posi = "bottomleft", sub="Smoove PCA",3,2,3, ratio=.2)
+#dev.off()
+#pdf("plots/smoove_x1y5_PCA.pdf")
+s.class(pca.smoove$li, fac=pop(smoove_gind), 
+        xax=1, yax=5, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca.smoove$eig[1:25], posi = "topleft", sub="Smoove PCA",3,2,3, ratio=.2)
+#dev.off()
+```
+
+Now finding the variance corresponding to each principal component:
+```{r PCA variance, echo=FALSE}
+perc.unpruned <- 100*pca.unpruned$eig/sum(pca.unpruned$eig)
+perc.pruned <- 100*pca$eig/sum(pca$eig)
+perc.delly <- 100*pca.delly$eig/sum(pca.delly$eig)
+perc.smoove <- 100*pca.smoove$eig/sum(pca.smoove$eig)
+
+perc.unpruned
+perc.pruned
+perc.delly
+perc.smoove
+```

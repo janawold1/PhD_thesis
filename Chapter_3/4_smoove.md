@@ -131,7 +131,7 @@ bcftools view -h $${out}05_delly_genofiltered_trio.vcf | grep CHROM | tr "\t" "\
 bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0000.vcf > ${out}lineage_comparisons/Fiordland_unfiltered_private_sites.txt
 bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0001.vcf > ${out}lineage_comparisons/SI_unfiltered_private_sites.txt
 bcftools query -f '%CHROM\t%POS\n' ${out}lineage_comparisons/0002.vcf > ${out}lineage_comparisons/shared_unfiltered_sites.txt
-```
+
 while read -r line
     do
     indiv=$(echo $line | awk '{print $1}')
@@ -154,3 +154,4 @@ while read -r line
     echo "Assigning $gen generation to $indiv"
     grep "^$indiv" ${out}smoove_indiv_counts.tsv | awk -v var="$gen" '{print $0"\t"var}' >> ${out}smoove_generations.tsv
 done < /kakapo-data/metadata/generations.tsv
+```

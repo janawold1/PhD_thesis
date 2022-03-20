@@ -1,4 +1,4 @@
-# Script for SV discovery with Delly.
+# Fairy tern SV discovery with Delly
 Here is a brief walkthrough of how I ran Delly for SV discovery in Australian fairy tern (*Sterna nereis nereis*) and tara iti (*Sterna nereis davisae*) populations. It is notable that we are looking at reads aligned to a conspecific reference genome (Common tern, *Sterna hirundo*). In light of this, we aim to identify Deletions with a focus on those that are fixed and private in one population or the other. 
 
 To start, we defined global variables as with ANGSD script. 
@@ -89,19 +89,16 @@ The proportion of these variants fixed in each population were found with:
 ```
 bcftools isec ${out}pops/AU_variable.vcf.gz ${out}pops/TI_variable.vcf.gz -p ${out}pops/
 
-mv ${out}pops/0000.vcf ${out}pops/AU_private_variable.vcf
-mv ${out}pops/0001.vcf ${out}pops/TI_private_variable.vcf
-mv ${out}pops/0002.vcf ${out}pops/AU_shared_variable.vcf
-mv ${out}pops/0003.vcf ${out}pops/TI_shared_variable.vcf
-
-bgzip ${out}pops/AU_shared_variable.vcf
-bgzip ${out}pops/TI_shared_variable.vcf
-bcftools index ${out}pops/AU_shared_variable.vcf.gz
-bcftools index ${out}pops/TI_shared_variable.vcf.gz
-
-bcftools merge -m id --threads 24 -O z -o ${out}pops/shared_merged.vcf.gz ${out}pops/AU_shared_variable.vcf.gz ${out}pops/TI_shared_variable.vcf.gz
-
-bcftools query -i 'N_PASS(GT=="AA")=15' -f '%SVTYPE\n' ${out}pops/AU_private_variable.vcf | sort | uniq -c
-bcftools query -i 'N_PASS(GT=="AA")=11' -f '%SVTYPE\n' ${out}pops/TI_private_variable.vcf | sort | uniq -c
-bcftools query -i 'N_PASS(GT=="AA")=26' -f '%SVTYPE\n' ${out}pops/shared_merged.vcf.gz | sort | uniq -c
+mv ${out}pops/0000.vcf ${out}pops/AU_privateSVs.vcf
+mv ${out}pops/0001.vcf ${out}pops/TI_privateSVs.vcf
+mv ${out}pops/0002.vcf ${out}pops/AU_sharedSVs.vcf
+mv ${out}pops/0003.vcf ${out}pops/TI_sharedSVs.vcf
+```
+Now finding the number of SVs that fixed in each population.
+```
+bcftools query -i 'N_PASS(GT=="AA")=15' -f '%SVTYPE\n' ${out}pops/AU_privateSVs.vcf | sort | uniq -c
+bcftools query -i 'N_PASS(GT=="AA")=15' -f '%SVTYPE\n' ${out}pops/AU_sharedSVs.vcf | sort | uniq -c
+bcftools query -i 'N_PASS(GT=="AA")=11' -f '%SVTYPE\n' ${out}pops/TI_privateSVs.vcf | sort | uniq -c
+bcftools query -i 'N_PASS(GT=="AA")=11' -f '%SVTYPE\n' ${out}pops/TI_sharedSVs.vcf | sort | uniq -c
+bcftools query -i 'N_PASS(GT=="AA")=26' -f '%SVTYPE\n' ${out}07_delly_genofilter.vcf.gz | sort | uniq -c
 ```

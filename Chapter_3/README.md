@@ -1,4 +1,4 @@
-# Chapter 4: Structural variant discovery in the kākāpō125+ data set
+# Chapter 3: The promise and challenges of structural variant discovery: A conservation case study in the critically endangered kākāpō (*Strigops habroptilus*)
 
 Here are the steps I took to trial different strategies for SV discovery using illumina sequence data. The raw fasta files were preprocessed, but averaged around 25x sequence coverage. Once mapped, this coverage ranged from 9x - 38x with a mean of ~18x. 
 

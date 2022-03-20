@@ -176,7 +176,7 @@ bcftools view -i 'N_PASS(GT="mis")=0' -O z -o ${data}global_noMAFfiltered_LD_nom
 ```
 The ```global_MAF_noPrune.vcf.gz``` SNPs were used for counting the total number of variable SNPs, private SNPs, fixed SNPs, and the proportion of variable to invariant sites. These data as well as the pruned SNPs were used for estimates of pi, Dxy, and Fst with pixy, estimates of heterozygosity with VCFtools. Finally, admixture was run using the pruned SNPs. 
 
-## Visualising filtering outputs
+## Visualising filtered outputs
 After filtering, the estimates of 
 
 ```

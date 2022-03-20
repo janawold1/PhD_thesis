@@ -1,4 +1,4 @@
-# Running Smoove to identify fixed deletions in tara iti and Australian fairy tern populations
+# Fairy tern SV discovery with Smoove
 Defining global variables:
 ```
 ref=/data/reference/bSteHir1.pri.cur.20190820.fasta
@@ -61,24 +61,40 @@ bcftools index ${out}pops/TI_variable.vcf.gz
 ```
 The proportion of these variants fixed in each population were found with:
 ```
-mv ${out}pops/0000.vcf ${out}pops/AU_private_variable.vcf
-mv ${out}pops/0001.vcf ${out}pops/TI_private_variable.vcf
-mv ${out}pops/0003.vcf ${out}pops/TI_shared_variable.vcf
-mv ${out}pops/0002.vcf ${out}pops/AU_shared_variable.vcf
+bcftools isec ${out}pops/AU_variable.vcf.gz ${out}TI_variable.vcf.gz -p ${out}pops/
 
-bgzip ${out}pops/AU_shared_variable.vcf
-bcftools index ${out}pops/AU_shared_variable.vcf.gz
-bgzip ${out}pops/TI_shared_variable.vcf
-bcftools index ${out}pops/TI_shared_variable.vcf.gz
+mv ${out}pops/0000.vcf ${out}pops/AU_privateSVs.vcf
+mv ${out}pops/0001.vcf ${out}pops/TI_privateSVs.vcf
+mv ${out}pops/0003.vcf ${out}pops/TI_sharedSVs.vcf
+mv ${out}pops/0002.vcf ${out}pops/AU_sharedSVs.vcf
 
-bcftools merge -m id --threads 24 -O z -o shared_merged.vcf.gz AU_shared_variable.vcf.gz TI_shared_variable.vcf.gz
-
-bcftools query -i 'N_PASS(GT=="AA")=15' -f '%SVTYPE\n' ${out}pops/AU_private_variable.vcf | sort | uniq -c
-bcftools query -i 'N_PASS(GT=="AA")=11' -f '%SVTYPE\n' ${out}pops/TI_private_variable.vcf | sort | uniq -c
-bcftools query -i 'N_PASS(GT=="AA")=26' -f '%SVTYPE\n' ${out}pops/shared_merged.vcf.gz | sort | uniq -c
+bcftools query -i 'N_PASS(GT=="AA")=15' -f '%SVTYPE\n' ${out}pops/AU_privateSVs.vcf | sort | uniq -c
+bcftools query -i 'N_PASS(GT=="AA")=15' -f '%SVTYPE\n' ${out}pops/AU_sharedSVs.vcf | sort | uniq -c
+bcftools query -i 'N_PASS(GT=="AA")=11' -f '%SVTYPE\n' ${out}pops/TI_privateSVs.vcf | sort | uniq -c
+bcftools query -i 'N_PASS(GT=="AA")=11' -f '%SVTYPE\n' ${out}pops/TI_sharedSVs.vcf | sort | uniq -c
+bcftools query -i 'N_PASS(GT=="AA")=26' -f '%SVTYPE\n' ${out}04_fairy_tern_filtered_missing.vcf.gz | sort | uniq -c
 ```
-## SV Summary
-
+Many of the SVs detected in AFT and TI by Smoove are fixed. Here we count how many of these SVs are fixed in either AFT tara iti vs globally. 
 ```
-
+bcftools query -i 'N_PASS(GT=="AA")=26' -f '%SVTYPE\n' ${out}04_fairy_tern_filtered_missing.vcf.gz | sort | uniq -c
 ```
+Here we found 5,264 SVs fixed globally. To find the number of SVs detected globally, but only fixed in TI:
+```
+bcftools view -S AU_samples.tsv ${out}04_fairy_tern_filtered_missing.vcf.gz | bcftools view -i 'N_PASS(GT="AA") = 15' -O z -o ${out}pops/AU_fixed.vcf.gz
+bcftools index ${out}pops/AU_fixed.vcf.gz
+
+bcftools view -S TI_samples.tsv ${out}04_fairy_tern_filtered_missing.vcf.gz | bcftools view -i 'N_PASS(GT="AA") = 11' -O z -o ${out}pops/TI_fixed.vcf.gz
+bcftools index ${out}pops/TI_fixed.vcf.gz
+
+bcftools isec ${out}pops/AU_fixed.vcf.gz ${out}pops/TI_fixed.vcf.gz -p ./
+
+mv ${out}pops/0000.vcf ${out}pops/AU_privateFixedSVs.vcf
+mv ${out}pops/0001.vcf ${out}pops/TI_privateFixedSVs.vcf
+mv ${out}pops/0003.vcf ${out}pops/TI_sharedFixedSVs.vcf
+mv ${out}pops/0002.vcf ${out}pops/AU_sharedFixedSVs.vcf
+
+bcftools query -f '%SVTYPE\n' ${out}pops/AU_privateFixedSVs.vcf | sort | uniq -c
+
+bcftools query -f '%SVTYPE\n' ${out}pops/TI_privateFixedSVs.vcf | sort | uniq -c
+```
+These counts include the number of private SVs that are fixed. The final shared totals were estimated by removing the private fixed SVs.

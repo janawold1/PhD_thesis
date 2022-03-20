@@ -1,7 +1,7 @@
 # Overview of Running Pixy
-(pixy)[https://pixy.readthedocs.io/en/latest/about.html] is a tool for unbiased estimates of nucleotide diversity from a VCF. It uses both variable and invariant sites for these estimates. 
+[pixy](https://pixy.readthedocs.io/en/latest/about.html) is a tool for unbiased estimates of nucleotide diversity from a VCF. It uses both variable and invariant sites for these estimates. 
 
-To begin, SNPs were filtered as per (4_SNP_filtering_trial.md). Filtered biallelic SNPs and filtered invariant sites were merged as per:
+To begin, SNPs were filtered as per [5_SNP_filtering_trial.md](https://github.com/janawold1/PhD_thesis/blob/main/Chapter_4/5_SNP_filtering_trial.md). Filtered biallelic SNPs and filtered invariant sites were merged as per:
 ```
 data=/data/common_tern/
 

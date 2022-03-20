@@ -196,3 +196,57 @@ cat kakapo_mergedSVs.vcf | grep -v 'IMPRECISE;' > kakapo_mergedSVs_precise.vcf
 ```
 
 After reviewing the number of SVs per chromosome, as well as the relative mapping rates to each chromosome, autosome 1 was chosen for comparisons of a long-read alignment approach and the *de novo* assembly approach.
+
+## Graph Construction with vg
+VCF must be indexed, but tabix is not compatible with TRA calls output from Jasmine. Therefore they were removed before progressing:
+```
+bcftools view -t NC_044283.2 -i 'SVTYPE!="TRA"' -O z -o cuteSV_allIndivs_chr7.vcf.gz cuteSV_mergedSVs_precise_filtered.vcf.gz
+bcftools sort -O z -o cuteSV_allIndivs_chr7.sorted.vcf.gz cuteSV_allIndivs_chr7.vcf.gz
+tabix cuteSV_allIndivs_chr7.sorted.vcf.gz
+
+vg construct --reference Jane_chr7.fa --vcf cuteSV_allIndivs_chr7.sorted.vcf.gz --threads 24 --handle-sv --progress > cuteSV_allIndivs_chr7.vg
+
+vg view cuteSV_allIndivs_chr7.vg > cuteSV_allIndivs_chr7.gfa
+
+vg view -d cuteSV_allIndivs_chr7.vg > cuteSV_allIndivs_chr7.dot
+```
+Repeated for Sniffles SVs
+```
+bcftools view -t NC_044283.2 -i 'SVTYPE!="TRA"' -O z -o sniffles_allIndivs_chr7.vcf.gz sniffles_mergedSVs_filtered.vcf
+bcftools sort -O z -o sniffles_allIndivs_chr7.sorted.vcf.gz sniffles_allIndivs_chr7.vcf.gz
+tabix sniffles_allIndivs_chr7.sorted.vcf.gz
+
+vg construct --reference Jane_chr7.fa --vcf sniffles_allIndivs_chr7.sorted.vcf.gz --threads 24 --handle-sv --progress > sniffles_allIndivs_chr7.vg
+
+vg view sniffles_allIndivs_chr7.vg > sniffles_allIndivs_chr7.gfa
+
+vg view -d sniffles_allIndivs_chr7.vg > sniffles_allIndivs_chr7.dot
+```
+After constructing graphs, stats were estimated with odgi and multiQC
+```
+odgi build -g cuteSV_allIndivs_chr7.gfa -o cuteSV_allIndivs_chr7.og
+odgi stats -i cuteSV_allIndivs_chr7.og -m > cuteSV_allIndivs_chr7.og.stats.yaml
+odgi viz -i cuteSV_allIndivs_chr7.og -o cuteSV_allIndivs_chr7.viz.png
+odgi layout -i cuteSV_allIndivs_chr7.og -o cuteSV_allIndivs_chr7.lay
+odgi draw -i cuteSV_allIndivs_chr7.og -c cuteSV_allIndivs_chr7.lay -p cuteSV_allIndivs_chr7.draw.png -w 11
+multiqc -f .
+
+odgi build -g sniffles_allIndivs_chr7.gfa -o sniffles_allIndivs_chr7.og
+odgi stats -i sniffles_allIndivs_chr7.og -m > sniffles_allIndivs_chr7.og.stats.yaml
+odgi viz -i sniffles_allIndivs_chr7.og -o sniffles_allIndivs_chr7.viz.png
+odgi layout -i sniffles_allIndivs_chr7.og -o sniffles_allIndivs_chr7.lay
+odgi draw -i sniffles_allIndivs_chr7.og -c sniffles_allIndivs_chr7.lay -p sniffles_allIndivs_chr7.draw.png -w 10 -C
+multiqc -f .
+```
+Then created 1-D visualisations of Toll-like receptors on autosome 7 for each graph with:
+```
+odgi viz -i cuteSV_allIndivs_chr7.og -o cuteSV_TLR1.png -x 500 -bz -r NC_044283.2:24009134-25000000 &
+odgi viz -i cuteSV_allIndivs_chr7.og -o cuteSV_TLR2.png -x 500 -bz -r NC_044283.2:44500000-46500000 &
+odgi viz -i cuteSV_allIndivs_chr7.og -o cuteSV_TLR3.png -x 500 -bz -r NC_044283.2:32400000-34400000 &
+odgi viz -i cuteSV_allIndivs_chr7.og -o cuteSV_TLR6.png -x 500 -bz -r NC_044283.2:22900000-24009134
+
+odgi viz -i sniffles_allIndivs_chr7.og -o sniffles_TLR1.png -x 500 -bz -r NC_044283.2:24009134-25000000 &
+odgi viz -i sniffles_allIndivs_chr7.og -o sniffles_TLR2.png -x 500 -bz -r NC_044283.2:44500000-46500000 &
+odgi viz -i sniffles_allIndivs_chr7.og -o sniffles_TLR3.png -x 500 -bz -r NC_044283.2:32400000-34400000 &
+odgi viz -i sniffles_allIndivs_chr7.og -o sniffles_TLR6.png -x 500 -bz -r NC_044283.2:22900000-24009134
+```

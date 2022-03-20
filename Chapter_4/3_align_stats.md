@@ -1,5 +1,5 @@
 # Alignment Statistics
-The scripts provided here were augmented from Joseph Guhlin to estimate alignment stats. [Samtools v1.11](https://github.com/samtools/samtools), [mosdepth v0.3.3](https://github.com/brentp/mosdepth) and [qualimap v2.2.2](http://qualimap.conesalab.org/) software packages were used.
+The scripts provided here were augmented from Joseph Guhlin to estimate alignment stats. [SAMtools](https://github.com/samtools/samtools) v1.12, [mosdepth](https://github.com/brentp/mosdepth) v0.3.3 and [qualimap](http://qualimap.conesalab.org/) v2.2.2 software packages were used.
 
 Aligned bam files were sorted, mates fixed and PCR duplicates were removed with SAMtools.
 ```
