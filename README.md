@@ -1,5 +1,7 @@
 # Challenges and Opportunities for Integrating Structural Variants into Conservation Genomics
-Here are the scripts used for analyses in each Chapter of my thesis. Within each directory is a brief over view of chapters, and all scripts used in formal analysis in Chapters 3, 4, and 5. 
+Presented here are the scripts used for data analyses in each data chapter of my thesis. Within each directory is a brief overview of chapter contents and details about each of the tools used. 
+
+For a brief outline of chapter contents:
 
 ## Chapter 3: The promise and challenges of structural variant discovery in the critically endangered kākāpō (*Strigops habroptilus*)
 A nearly complete [short-read resequence data set](https://www.doc.govt.nz/our-work/kakapo-recovery/what-we-do/research-for-the-future/kakapo125-gene-sequencing/) and [high quality reference genome](https://vgp.github.io/genomeark/Strigops_habroptilus/) were used to investigate structual variantion (SVs) in the critically endangered kākāpō (*Strigops habroptilus*). Structural variants were called using the [Delly](https://github.com/dellytools/delly), [Manta](https://github.com/Illumina/manta) and [SMOOVE](https://github.com/brentp/smoove) pipelines.
