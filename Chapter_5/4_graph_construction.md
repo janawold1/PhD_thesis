@@ -24,6 +24,28 @@ do
     ./faSomeRecords ${data}NextPolish/racon_NextPolish/${female}_polished/genome.nextpolish.fasta ${data}wfmash/${female}_raconNextpolish_chr7.txt ${data}chr7_scaffolds/${female}_raconNextpolish_chr7.fa
 done
 ```
+## Estimating coverage of chromosome 7
+Here I used whole-genome alignments of the scaffolds identified as likely belonging to chromosome 7, and the chromosome 7 contig from Jane's genome.
+Assembly stats specific to chromosome 7 specific contigs were estimated with Quast.
+```
+jane7=${data}chr7_assembly_stats/fastas/Jane_chr7.fa
+for indiv in Bill Blades C1 C2 Gulliver Margaret-Maree Sue Jane
+    do
+    echo "Estimating chromosome 7 assembly stats for ${indiv}..."
+    quast -t 24 -o ${data}chr7_assembly_stats/quast/${indiv} -r $jane7 ${data}chr7_assembly_stats/fastas/${indiv}.fa
+
+```
+For whole-genome alignment with winnowmap, high-frequency k-mers were computed with:
+```
+
+for indiv in Bill Blades C1 C2 Kuia Margaret-Maree Sue
+    do
+    echo "Estimating k-mers for $indiv..."
+    meryl count k=19 ${data}pggb_final/fastas/${indiv}_chr7.fa output ${data}chr7_coverage/meryl_out/${indiv}.meryl
+    meryl print greater-than distinct=0.9998 ${data}chr7_coverage/meryl_out/${indiv}.meryl > ${data}chr7_coverage/meryl_out/${indiv}_k19.txt
+    winnowmap -W ${data}chr7_coverage/meryl_out/${indiv}_k19.txt -ax ${jane7} ${data}pggb_final/fastas/${indiiv}_chr7.fa > ${data}chr7_coverage/alignments/${indiv}.sam
+done
+```
 ## Estimating genome divergence
 Distance of each query sequence to the reference was estimated using [mash](https://mash.readthedocs.io/en/latest/index.html) v2.3.
 ```
