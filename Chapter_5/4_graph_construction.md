@@ -116,10 +116,10 @@ odgi extract --threads 24 --progress -i ${graph_og} -o TLR2_subgraph.og -r Jane#
 odgi extract --threads 24 --progress -i ${graph_og} -o TLR3_subgraph.og -r Jane#chromosome_7:32400000-34400000 -E
 odgi extract --threads 24 --progress -i ${graph_og} -o TLR6_subgraph.og -r Jane#chromosome_7:22900000-24009134 -E
 
-odgi stats -i TLR1_subgraph.og -S
-odgi stats -i TLR2_subgraph.og -S
-odgi stats -i TLR3_subgraph.og -S
-odgi stats -i TLR6_subgraph.og -S
+odgi stats -i TLR1_subgraph.og -m
+odgi stats -i TLR2_subgraph.og -m
+odgi stats -i TLR3_subgraph.og -m
+odgi stats -i TLR6_subgraph.og -m
 
 odgi sort -i TLR1_subgraph.og -o - -O | odgi viz -i - -o TLR1_subgraph.png -s '#' -P
 odgi sort -i TLR2_subgraph.og -o - -O | odgi viz -i - -o TLR2_subgraph.png -s '#' -P
