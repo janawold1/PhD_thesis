@@ -1,0 +1,636 @@
+---
+title: 'Chapter 4: Short-read SV discovery in Kākāpō'
+author: "Jana R. Wold"
+date: "31 January 2022"
+output:
+  html_document:
+    self_contained: false
+---
+
+Here is the outline of charting differences among structural variants (SVs) identified using 3 discovery tools: 1) Delly; 2) Manta; and 3) Smoove.  
+
+Below we assess variation in the number of SVs discovered by type, size and chromosome for each of these three tools. We also assess the impacts of filtering parameters. 
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(ggridges)
+library(ggpubr)
+library(gridExtra)
+library(dplyr)
+library(tidyverse)
+library(adegenet)
+library(hierfstat)
+library(vcfR)
+
+#install.packages("devtools")
+#devtools::install_github("G-Thomson/Manu")
+library(Manu)
+
+pal <- get_pal("Kakapo")
+get_pal("Kakapo")
+print_pal(pal)
+
+knitr::opts_chunk$set(dev = c("svg", "png"),
+                      dpi = 300,
+                      echo = FALSE,
+                      cache = TRUE)
+
+setwd("G:/My Drive/Data/Kakapo/Short-read SV Chapter Data/bwa/SV_summaries")
+```
+
+Data loaded as per:
+```{r Load Data, include=FALSE}
+# Data from each discovery/genotyping tool
+delly <-read.table("inputs/delly_summary.tsv", sep = "\t", header = TRUE)
+manta <-read.table("inputs/manta_summary.tsv", sep = "\t", header = TRUE)
+smoove <-read.table("inputs/smoove_summary.tsv", sep = "\t", header = TRUE)
+svs <- rbind(delly, manta, smoove)
+
+# Sorting into filtered and unfiltered data sets
+unfiltered <- svs %>%
+                filter(across(data, ~grepl('unfiltered' , .)))
+filtered <- svs %>%
+                filter(across(data, ~grepl('SVfiltered' , .)))
+
+# Data for generation comparisons
+smoove_gen <- read.table("inputs/smoove_generations.tsv", sep = "\t", header = TRUE)
+delly_gen <- read.table("inputs/delly_generations.tsv", sep = "\t", header = TRUE)
+manta_joint_gen <-read.table("inputs/manta_joint_generations.tsv", sep = "\t", header = TRUE)
+manta_joint_gen$size <- manta_joint_gen$end - manta_joint_gen$start
+
+manta_batch_gen <- read.table("inputs/manta_batch_generations.tsv", sep = "\t", header = TRUE)
+manta_batch_gen$size <- manta_batch_gen$end - manta_batch_gen$start
+
+smoove_indiv_size <- smoove_gen %>%
+                        group_by(indiv) %>%
+                        summarise(min = min(size),
+                                  max = max(size),
+                                  median = median(size),
+                                  mean = mean(size),
+                                  sd = sd(size))
+smoove_indiv_size$data <- "Smoove"
+
+delly_indiv_size <- delly_gen %>%
+                        group_by(indiv) %>%
+                        summarise(min = min(size),
+                                  max = max(size),
+                                  median = median(size),
+                                  mean = mean(size),
+                                  sd = sd(size))
+delly_indiv_size$data <- "Delly"
+indiv_size <- rbind(smoove_indiv_size, delly_indiv_size)
+
+delly_size_relation <- delly_gen %>% 
+                          select(indiv,size) %>% 
+                          group_by(indiv) %>% 
+                          summarise(indiv = indiv, 
+                                    count = n(),
+                                    median = median(size),
+                                    mean = mean(size)) %>% 
+                          unique()
+smoove_size_relation <- smoove_gen %>% 
+                          select(indiv,size) %>% 
+                          group_by(indiv) %>% 
+                          summarise(indiv = indiv, 
+                                    count = n(),
+                                    median = median(size),
+                                    mean = mean(size)) %>% 
+                          unique()
+
+# Data for testing differences in SV size and type among SV discovery tools
+filtered_del <- filtered [ filtered$SV_type == "Deletion" ,]
+filtered_dup <- filtered [ filtered$SV_type == "Duplication" ,]
+filtered_ins <- filtered [ filtered$SV_type == "Insertion" ,]
+filtered_inv <- filtered [ filtered$SV_type == "Inversion" ,]
+counts <- filtered %>%
+            group_by(data) %>%
+            count(vars = SV_type)
+counts <- spread(counts, vars, n)
+
+delly_mendel_summary <- read.table("inputs/delly_mendel.tsv", header = T, sep = "\t")
+manta_mendel_summary <- read.table("inputs/manta_mendel.tsv", header = T, sep = "\t")
+smoove_mendel_summary <- read.table("inputs/smoove_mendel.tsv", header = T, sep = "\t")
+```
+
+Here I explored the number of structural variants per data set before and after filtering. 
+
+To begin we have structural variants discovered using Delly, Manta and Smoove. Two strategies were used for structural variant discovery with Manta, 1) a batched approach; and 2) joint variant calling. 
+
+```{r type counts, echo=FALSE, fig.align='center'}
+ggplot(unfiltered, aes(x=SV_type, fill=data)) +
+  geom_histogram(stat = "count", position = position_dodge()) +
+  labs(x = "Structural Variant Type", y = "Count", title = "Count of all Structural Variants") +
+  scale_fill_manual(values = c("delly_unfiltered" = "#7D9D33", "manta_batch_unfiltered" = "#CD8862", "manta_joint_unfiltered" = "#BCA888", "smoove_unfiltered" = "#DCC949")) +
+  theme_light()
+
+ggplot(filtered, aes(x=SV_type, fill=data)) +
+  geom_histogram(stat = "count", position = position_dodge()) +
+  labs(x = "Structural Variant Type", y = "Count", title = "Count of Filtered Structural Variants") +
+  scale_fill_manual(values = c("delly_SVfiltered" = "#7D9D33", "manta_batch_SVfiltered" = "#CD8862", "manta_joint_SVfiltered" = "#BCA888", "smoove_SVfiltered" = "#DCC949")) +
+  theme_light()
+```
+
+Here, we compared the size distribution of SVs called by all three tools. Due to the experimental set up violating many assumptions of independence, comparisons of variance between the tools were not made. Instead differences are in the context of means and given the highly skewed size distribution across SV types in all data sets, the natural log of SV size was used to graph the size distribution and estimate a mean (geometric mean).
+
+```{r size_distribution, echo=FALSE, fig.align = 'center'}
+filtered$logsize <- log(filtered$size)
+head(filtered)
+
+# Not transformed
+ggplot(filtered, aes(x=size, fill=data)) +
+  geom_density(alpha = 0.7) +
+  xlim(0,10000) +
+  labs(x = "Structural Variant Size", y = "Proportion", title = "Size Distribution of Filtered Structural Variants") +
+  theme_light() +
+  facet_wrap(~SV_type, scales = "free_y") +
+  scale_fill_manual(values = c("delly_SVfiltered" = "#7D9D33", "manta_batch_SVfiltered" = "#CD8862", "manta_joint_SVfiltered" = "#BCA888", "smoove_SVfiltered" = "#DCC949"))
+
+ggplot(filtered, aes(x=size, fill=data)) +
+  geom_histogram(alpha = 0.7, position = "dodge") +
+  xlim(0,10000) +
+  labs(x = "Structural Variant Size", y = "Proportion", title = "Size Distribution of Filtered Structural Variants") +
+  theme_light() +
+  facet_wrap(~SV_type, scales = "free_y") +
+  scale_fill_manual(values = c("delly_SVfiltered" = "#7D9D33", "manta_batch_SVfiltered" = "#CD8862", "manta_joint_SVfiltered" = "#BCA888", "smoove_SVfiltered" = "#DCC949"))
+
+# Size transformed
+#png("plots/Size_distributions.png")
+ggplot(filtered, aes(x=logsize, fill=data)) +
+  geom_density(alpha = 0.5) +
+  labs(x = "Structural Variant Size", y = "Proportion", title = "Size Distribution of Filtered Structural Variants") +
+  theme_light() +
+  facet_wrap(~SV_type, scales = "free_y") +
+  scale_fill_manual(labels = c("delly_SVfiltered" = "Delly", "manta_batch_SVfiltered" = "Manta - Batch", "manta_joint_SVfiltered" = "Manta - Joint", "smoove_SVfiltered" = "Smoove"), values = c("#7D9D33", "#CD8862", "#BCA888","#DCC949"))
+#dev.off()
+
+ggplot(filtered, aes(x=logsize, fill=data)) +
+  geom_histogram(alpha = 0.7, position = "dodge") +
+  labs(x = "Structural Variant Size", y = "Proportion", title = "Size Distribution of Filtered Structural Variants") +
+  theme_light() +
+  facet_wrap(~SV_type, scales = "free_y") +
+  scale_fill_manual(labels = c("delly_SVfiltered" = "Delly", "manta_batch_SVfiltered" = "Manta - Batch", "manta_joint_SVfiltered" = "Manta - Joint", "smoove_SVfiltered" = "Smoove"), values = c("#7D9D33", "#CD8862", "#BCA888","#DCC949"))
+
+```
+
+```{r Mendel_size_distribution, echo=FALSE}
+delly_mendel_summary$size <- delly_mendel_summary$end - delly_mendel_summary$start
+delly_mendel_summary$logsize <- log(delly_mendel_summary$size)
+delly_mendel_summary <- delly_mendel_summary [ delly_mendel_summary$data == "<=0.2_fail_delly_genofilter" , ]
+
+delly_mendel_summary [ delly_mendel_summary$SV_type == "Deletion",] %>%
+  summary()
+delly_mendel_summary [ delly_mendel_summary$SV_type == "Duplication",] %>%
+  summary()
+delly_mendel_summary [ delly_mendel_summary$SV_type == "Insertion",] %>%
+  summary()
+delly_mendel_summary [ delly_mendel_summary$SV_type == "Inversion",] %>%
+  summary()
+
+head(manta_mendel_summary)
+manta_mendel_summary$size <- manta_mendel_summary$end - manta_mendel_summary$start
+manta_mendel_summary$logsize <- log(manta_mendel_summary$size)
+mantaB_mendel_summary <- manta_mendel_summary [manta_mendel_summary$data == "20%_fail_batch_manta_genofilter" , ]
+
+mantaB_mendel_summary [ mantaB_mendel_summary$SV_type == "Deletion",] %>%
+  summary()
+mantaB_mendel_summary [ mantaB_mendel_summary$SV_type == "Duplication",] %>%
+  summary()
+mantaB_mendel_summary [ mantaB_mendel_summary$SV_type == "Insertion",] %>%
+  summary()
+mantaB_mendel_summary [ mantaB_mendel_summary$SV_type == "Inversion",] %>%
+  summary()
+
+
+mantaJ_mendel_summary <- manta_mendel_summary [manta_mendel_summary$data == "20%_fail_joint_manta_genofilter" , ]
+
+mantaJ_mendel_summary [ mantaJ_mendel_summary$SV_type == "Deletion",] %>%
+  summary()
+mantaJ_mendel_summary [ mantaJ_mendel_summary$SV_type == "Duplication",] %>%
+  summary()
+mantaJ_mendel_summary [ mantaJ_mendel_summary$SV_type == "Insertion",] %>%
+  summary()
+mantaJ_mendel_summary [ mantaJ_mendel_summary$SV_type == "Inversion",] %>%
+  summary()
+
+tail(smoove_mendel_summary)
+smoove_mendel_summary <- smoove_mendel_summary [ smoove_mendel_summary$data == "<=0.2_fail_smoove_genofilter",]
+
+smoove_mendel_summary [ smoove_mendel_summary$SV_type == "Deletion",] %>%
+  summary()
+smoove_mendel_summary [ smoove_mendel_summary$SV_type == "Duplication",] %>%
+  summary()
+smoove_mendel_summary [ smoove_mendel_summary$SV_type == "Inversion",] %>%
+  summary()
+```
+
+Variability in chromosome 'richness' SV counts and the relative proportion of each chromosome impacted by SVs were then assessed.
+
+```{r Chromosome Comparisons, echo=FALSE, fig.align='center'}
+filtered$proportion <- filtered$size / filtered$chrom_size
+
+# The absolute count of unfiltered SVs per chromosome
+ggplot(unfiltered, aes(x = chrom, fill = SV_type)) + 
+  geom_histogram(stat = "count", position = "stack") +
+  labs(x = "Chromosome", y = "Count", title = "Total Number of Structural Variants per Chromosome") +
+  theme_light() + 
+  facet_wrap(~data, scales = "free_y") +
+  scale_fill_manual(values = c("Deletion" = "#7D9D33", "Duplication" = "#CD8862", "Insertion" = "#BCA888", "Inversion" = "#DCC949"))
+
+# The absolute count of filtered SVs per chromosome
+ggplot(filtered, aes(x = chrom, fill = SV_type)) + 
+  geom_histogram(stat = "count", position = "stack") +
+  labs(x = "Chromosome", y = "Count", title = "Number of Filtered Structural Variants per Chromosome") +
+  theme_light() + 
+  facet_wrap(~data, scales = "free_y") +
+  scale_fill_manual(values = c("Deletion" = "#7D9D33", "Duplication" = "#CD8862", "Insertion" = "#BCA888", "Inversion" = "#DCC949"))
+
+
+# The proportion of the chromosome impacted by each filtered data set
+filtered %>%
+  ggplot(aes(x = chrom, y = proportion, fill = SV_type)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(x = "Chromosome", y = "Proportion of impacted base pairs", title = "Relative proportion of chromosome impacted by structural variants") +
+  theme_light() +
+  facet_wrap(~data, scales = "free_y") +
+  scale_fill_manual(values = c("Deletion" = "#7D9D33", "Duplication" = "#CD8862", "Insertion" = "#BCA888", "Inversion" = "#DCC949"))
+
+```
+
+We then compared a rough count of SVs carried by individual kākāpō by type and putative 'origin'.
+
+```{r Genotype Comparisons, echo=FALSE, fig.align='center'}
+ggplot(delly_gen, aes(x = indiv, fill=SV_type)) +
+  geom_histogram(stat = 'count') +
+  labs(x = "Individual", y = "Structural Variant Count", title = "Number of Delly SVs carried by individual kākāpō by population") +
+  theme_light() +
+  scale_fill_manual(values = c("Deletion" = "#7D9D33", "Duplication" = "#CD8862", "Insertion" = "#BCA888", "Inversion" = "#DCC949"))
+
+ggplot(smoove_gen, aes(x = indiv, fill=SV_type)) +
+  geom_histogram(stat = 'count') +
+  labs(x = "Individual", y = "Structural Variant Count", title = "Number of Smoove SVs carried by individual kākāpō by population") +
+  theme_light() +
+  scale_fill_manual(values = c("Deletion" = "#7D9D33", "Duplication" = "#CD8862", "Insertion" = "#BCA888", "Inversion" = "#DCC949"))
+
+ggplot(manta_batch_gen, aes(x = indiv, fill=SV_type)) +
+  geom_histogram(stat = 'count') +
+  ylim(0,350) +
+  labs(x = "Individual", y = "Structural Variant Count", title = "Number of Manta - Batch SVs carried by individual kākāpō by population") +
+  theme_light() +
+  scale_fill_manual(values = c("Deletion" = "#7D9D33", "Duplication" = "#CD8862", "Insertion" = "#BCA888", "Inversion" = "#DCC949"))
+
+ggplot(manta_joint_gen, aes(x = indiv, fill=SV_type)) +
+  geom_histogram(stat = 'count') +
+  ylim(0,350) +
+  labs(x = "Individual", y = "Structural Variant Count", title = "Number of Manta - Joint SVs carried by individual kākāpō by population") +
+  theme_light() +
+  scale_fill_manual(values = c("Deletion" = "#7D9D33", "Duplication" = "#CD8862", "Insertion" = "#BCA888", "Inversion" = "#DCC949"))
+
+```
+```{r Indiv_lineage_counts, echo=FALSE, fig.align='center'}
+delly_lineage <- read.table("inputs/delly_lineage_counts.tsv", header = TRUE, sep = "\t")
+mantaB_lineage <- read.table("inputs/mantaB_lineage_counts.tsv", header = TRUE, sep = "\t")
+mantaJ_lineage <- read.table("inputs/mantaJ_lineage_counts.tsv", header = TRUE, sep = "\t")
+smoove_lineage <- read.table("inputs/smoove_lineage_counts.tsv", header = TRUE, sep = "\t")
+
+#png("plots/delly_unfiltered_lineage_count.png")
+ggplot(delly_lineage, aes(x = indiv, fill=lineage)) +
+  geom_histogram(stat = 'count') +
+  labs(x = "Individual", y = "Structural Variant Count", title = "A) Delly") +
+  theme_light() +
+  scale_fill_manual(labels = c("Fiordland_unfiltered_lineage" = "Fiordland", "Rakiura_unfiltered_lineage" = "Rakiura", "Shared_unfiltered_lineage" = "Shared"),values = c("Fiordland_unfiltered_lineage" = "#AD6B17", "Rakiura_unfiltered_lineage" = "#66743B", "Shared_unfiltered_lineage" = "#BAC4C2"))
+#dev.off()
+
+#png("plots/mantaB_unfiltered_lineage_count.png")
+ggplot(mantaB_lineage, aes(x = indiv, fill=lineage)) +
+  geom_histogram(stat = 'count') +
+  labs(x = "Individual", y = "Structural Variant Count", title = "B) Manta - Batch") +
+  theme_light() +
+  scale_fill_manual(labels = c("Fiordland_unfiltered_lineage" = "Fiordland", "Rakiura_unfiltered_lineage" = "Rakiura", "Shared_unfiltered_lineage" = "Shared"),values = c("Fiordland_unfiltered_lineage" = "#AD6B17", "Rakiura_unfiltered_lineage" = "#66743B", "Shared_unfiltered_lineage" = "#BAC4C2"))
+#dev.off()
+
+#png("plots/mantaJ_unfiltered_lineage_count.png")
+ggplot(mantaJ_lineage, aes(x = indiv, fill=lineage)) +
+  geom_histogram(stat = 'count') +
+  labs(x = "Individual", y = "Structural Variant Count", title = "C) Manta - Joint") +
+  theme_light() +
+  scale_fill_manual(labels = c("Fiordland_unfiltered_lineage" = "Fiordland", "Rakiura_unfiltered_lineage" = "Rakiura", "Shared_unfiltered_lineage" = "Shared"),values = c("Fiordland_unfiltered_lineage" = "#AD6B17", "Rakiura_unfiltered_lineage" = "#66743B", "Shared_unfiltered_lineage" = "#BAC4C2"))
+#dev.off()
+
+#png("plots/smoove_unfiltered_lineage_count.png")
+ggplot(smoove_lineage, aes(x = indiv, fill=lineage)) +
+  geom_histogram(stat = 'count') +
+  labs(x = "Individual", y = "Structural Variant Count", title = "D) Smoove") +
+  theme_light() +
+  scale_fill_manual(labels = c("Fiordland_unfiltered_lineage" = "Fiordland", "Rakiura_unfiltered_lineage" = "Rakiura", "Shared_unfiltered_lineage" = "Shared"),values = c("Fiordland_unfiltered_lineage" = "#AD6B17", "Rakiura_unfiltered_lineage" = "#66743B", "Shared_unfiltered_lineage" = "#BAC4C2"))
+#dev.off()
+```
+
+```{r Individual_Size_Comparisons, echo=FALSE, fig.align='center'}
+ggplot(delly_size_relation, aes(x = indiv, y = mean)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Individual", y = "Mean structural variant size", title = "Mean Delly SV size per individual kākāpō") +
+  theme_light()
+
+ggplot(smoove_size_relation, aes(x = indiv, y = mean)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Individual", y = "Mean structural variant size", title = "Mean Smoove SV size per individual kākāpō") +
+  theme_light()
+
+ggplot(delly_size_relation, aes(x = count, y = mean, label = indiv)) +
+  geom_point() +
+  labs(x = "Number of SVs Carried", y = "Mean structural variant size", title = "Relationship between number of Delly SVs carried and mean size of SVs") +
+  geom_text(aes(label=indiv), hjust = 0, vjust = 0) +
+  theme_light()
+
+ggplot(smoove_size_relation, aes(x = count, y = mean, label = indiv)) +
+  geom_point() +
+  labs(x = "Number of SVs Carried", y = "Mean structural variant size", title = "Relationship between number of Smoove SVs carried and mean size of SVs") +
+  geom_text(aes(label=indiv), hjust = 0, vjust = 0) +
+  theme_light()
+
+ggplot(delly_size_relation, aes(x = count, y = median, label = indiv)) +
+  geom_point() +
+  labs(x = "Number of SVs Carried", y = "Median structural variant size", title = "Relationship between number of Delly SVs carried and median size of SVs") +
+  geom_text(aes(label=indiv), hjust = 0, vjust = 0) +
+  theme_light()
+
+ggplot(smoove_size_relation, aes(x = count, y = median, label = indiv)) +
+  geom_point() +
+  labs(x = "Number of SVs Carried", y = "Median structural variant size", title = "Relationship between number of Smoove SVs carried and median size of SVs") +
+  geom_text(aes(label=indiv), hjust = 0, vjust = 0) +
+  theme_light()
+
+delly_gen %>%
+  summarise(mu = mean(size),
+            popvar = var(size))
+
+ggplot(smoove_size_relation, aes(x = mean)) +
+  geom_density()
+```
+
+
+```{r Generational_Comparisons, echo=FALSE, fig.align='center'}
+delly_gen %>%
+  count(indiv, gen) %>%
+  ggplot(aes(x = gen, y = n, fill = gen)) +
+    geom_violin() +
+    labs(x = "Ancestry", y = "Total Number of Delly SV's", title = "Counts of Delly SV's by generation ") +
+    theme(axis.text = element_text(size = 14)) +
+    scale_fill_manual(values = c("RH0" = "#AD6B17","RH1" = "#CCB62F", "RH2" = "#D0C471", "SI0" = "#3E4331", "SI1" = "#66743B", "SI2" = "#BAC4C2")) +
+    theme_light()
+
+smoove_gen %>%
+  count(indiv,gen) %>%
+  ggplot(aes(x = gen, y = n, fill = gen)) +
+    geom_violin() +
+    labs(x = "Ancestry", y = "Total Number of Smoove SV's", title = "Counts of Smoove SV's by generation ") +
+    theme(axis.text = element_text(size = 14)) +
+    scale_fill_manual(values = c("RH0" = "#AD6B17","RH1" = "#CCB62F", "RH2" = "#D0C471", "SI0" = "#3E4331", "SI1" = "#66743B", "SI2" = "#BAC4C2")) +
+    theme_light()
+
+manta_batch_gen %>%
+  count(indiv,gen) %>%
+  ggplot(aes(x = gen, y = n, fill = gen)) +
+    geom_violin() +
+    ylim(0,350) +
+    labs(x = "Ancestry", y = "Total Number of SV's", title = "Counts of Manta - Batch SV's by generation ") +
+    theme(axis.text = element_text(size = 14)) +
+    scale_fill_manual(values = c("RH0" = "#AD6B17","RH1" = "#CCB62F", "RH2" = "#D0C471", "SI0" = "#3E4331", "SI1" = "#66743B", "SI2" = "#BAC4C2")) +
+    theme_light()
+
+manta_joint_gen %>%
+  count(indiv,gen) %>%
+  ggplot(aes(x = gen, y = n, fill = gen)) +
+    geom_violin() +
+    ylim(0,350) +
+    labs(x = "Ancestry", y = "Total Number of SV's", title = "Counts of Manta - Joint SV's by generation ") +
+    theme(axis.text = element_text(size = 14)) +
+    scale_fill_manual(values = c("RH0" = "#AD6B17","RH1" = "#CCB62F", "RH2" = "#D0C471", "SI0" = "#3E4331", "SI1" = "#66743B", "SI2" = "#BAC4C2")) +
+    theme_light()
+```
+
+# Mendelian Size Comparisons
+```{r Mendel Size, echo = FALSE}
+delly_mendel <- read.table("inputs/delly_mendel.tsv", header = TRUE, sep = "\t")
+manta_mendel <- read.table("inputs/manta_mendel_nounresolved.tsv", header = TRUE, sep = "\t")
+smoove_mendel <- read.table("inputs/smoove_mendel.tsv", header = TRUE, sep = "\t")
+
+delly_mendel$size <- delly_mendel$end - delly_mendel$start
+
+delly_mendel$logsize <- log(delly_mendel$size)
+manta_mendel$logsize <- log(manta_mendel$size)
+smoove_mendel$logsize <- log(smoove_mendel$size)
+filtered$logsize <- log(filtered$size)
+
+summary(delly_mendel)
+summary(filtered [filtered$data == "delly_SVfiltered",])
+summary(manta_mendel)
+summary(smoove_mendel)
+
+ggplot(filtered, aes(x=logsize, fill=data)) +
+  geom_density(alpha = 0.7) +
+  labs(x = "Structural Variant Size", y = "Proportion", title = "Size Distribution of Filtered Structural Variants") +
+  theme_light() +
+  facet_wrap(~data, scales = "free_y") +
+  scale_fill_manual(values = c("delly_SVfiltered" = "#7D9D33", "manta_batch_SVfiltered" = "#CD8862", "manta_joint_SVfiltered" = "#BCA888", "smoove_SVfiltered" = "#DCC949"))
+
+ggplot(delly_mendel, aes(x=logsize, fill=data)) +
+  geom_density(alpha = 0.7) +
+  labs(x = "Structural Variant Size", y = "Proportion", title = "Size Distribution of Filtered Structural Variants") +
+  theme_light() +
+  facet_wrap(~data, scales = "free_y") 
+
+
+ggplot(manta_mendel, aes(x=logsize, fill=data)) +
+  geom_density(alpha = 0.7) +
+  labs(x = "Structural Variant Size", y = "Proportion", title = "Size Distribution of Filtered Structural Variants") +
+  theme_light() +
+  facet_wrap(~data, scales = "free_y") 
+
+
+ggplot(smoove_mendel, aes(x=logsize, fill=data)) +
+  geom_density(alpha = 0.7) +
+  labs(x = "Structural Variant Size", y = "Proportion", title = "Size Distribution of Filtered Structural Variants") +
+  theme_light() +
+  facet_wrap(~data, scales = "free_y") 
+
+
+```
+
+# Proportion of Chromosome SVs passing genotype filters
+
+```{r Chromsome genotype pass, echo = FALSE}
+delly_geno <- read.table("inputs/delly_genotype_proportions.tsv", header = TRUE, sep = "\t")
+manta_geno <- read.table("inputs/manta_genotype_proportions.tsv", header = TRUE, sep = "\t")
+smoove_geno <- read.table("inputs/smoove_genotype_proportions.tsv", header = TRUE, sep = "\t")
+
+ggplot(delly_geno, aes(x = chrom, fill=SV_type)) +
+  geom_histogram(stat = 'count') +
+  labs(x = "Chromosome", y = "Structural Variant Count", title = "Number of Delly SVs by chromosome") +
+  theme_light() +
+  scale_fill_manual(values = c("Deletion" = "#7D9D33", "Duplication" = "#CD8862", "Insertion" = "#BCA888", "Inversion" = "#DCC949")) +
+  facet_wrap(~data)
+
+ggplot(manta_geno, aes(x = chrom, fill=SV_type)) +
+  geom_histogram(stat = 'count') +
+  labs(x = "Chromosome", y = "Structural Variant Count", title = "Number of Manta SVs by chromosome") +
+  theme_light() +
+  scale_fill_manual(values = c("Deletion" = "#7D9D33", "Duplication" = "#CD8862", "Insertion" = "#BCA888", "Inversion" = "#DCC949")) +
+  facet_wrap(~data)
+
+ggplot(smoove_geno, aes(x = chrom, fill=SV_type)) +
+  geom_histogram(stat = 'count') +
+  labs(x = "Chromosome", y = "Structural Variant Count", title = "Number of Smoove SVs by chromosome") +
+  theme_light() +
+  scale_fill_manual(values = c("Deletion" = "#7D9D33", "Duplication" = "#CD8862", "Insertion" = "#BCA888", "Inversion" = "#DCC949")) +
+  facet_wrap(~data)
+```
+
+## PCA trials
+First are the results for Delly:
+```{r SV based PCA, echo=FALSE}
+
+delly_mendel_vcf <- read.vcfR("inputs/pca/delly_mendel_target_samples.vcf")
+delly_vcf <- read.vcfR("inputs/pca/delly_target_samples.vcf")
+delly_mendel_gind <- vcfR2genind(delly_mendel_vcf)
+delly_gind <- vcfR2genind(delly_vcf)
+pop(delly_mendel_gind) <- as.factor(c("RH0", "RH2", "RH2", "RH1", "RH2", "RH1", "RH2", "RH1", "SI0", "SI1", "SI0", "SI1", "SI1", "SI2", "SI0", "SI0", "SI0", "SI0", "SI0", "SI0", "SI1", "SI1", "SI0", "SI0", "SI0", "SI1", "SI2", "SI1", "SI1", "SI1", "SI1", "SI1", "SI0", "SI0", "SI0", "SI1", "SI1", "SI0", "SI0", "SI1", "SI1", "SI1", "SI1", "SI1", "SI1", "SI1", "SI2", "SI1", "SI1", "SI1", "SI0", "SI1", "SI0", "SI0", "SI2", "SI1", "SI2", "SI1", "SI1", "SI1", "SI1", "SI0", "SI0", "SI0", "SI0", "SI0", "SI1", "SI1", "SI0", "SI1", "SI1", "SI0", "SI1", "SI1", "SI2", "SI1", "SI2", "SI0", "SI0", "SI0", "SI2", "SI1", "SI0", "SI1", "SI1", "SI1", "SI1", "SI1", "SI0", "SI1", "SI1", "SI1", "SI0", "SI0", "SI1", "SI0", "SI1", "SI0", "SI0", "SI1", "SI0", "SI0", "SI1", "SI1", "SI1", "SI1", "SI1", "SI1", "SI0", "SI1", "SI1", "SI2", "SI0", "SI1", "SI2", "SI1", "SI1"))
+pop(delly_gind) <- delly_mendel_gind$pop
+
+x.mendel.delly <- tab(delly_mendel_gind, freq=T, NA.method="mean")
+x.delly <- tab(delly_gind, freq=TRUE, NA.method="mean")
+
+pca.mendel.delly <- dudi.pca(x.mendel.delly, center=T, scale = F)
+pca.delly <- dudi.pca(x.delly, center=TRUE, scale=FALSE)
+
+s.class(pca.mendel.delly$li, fac=pop(delly_mendel_gind), col=funky(15))
+#pdf("plots/Delly_mendel.pdf")
+s.class(pca.mendel.delly$li, fac=pop(delly_mendel_gind), 
+        xax=2, yax=3, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca.mendel.delly$eig[1:50], posi = "topright", sub = "Delly Mendel",3,2,3, ratio=.2)
+#dev.off()
+
+s.class(pca.delly$li, fac=pop(delly_gind), col=funky(15))
+#pdf("plots/Delly_total.pdf")
+s.class(pca.delly$li, fac=pop(delly_gind), 
+        xax=2, yax=3, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca.delly$eig[1:50], posi = "topright", sub = "Delly total",3,2,3, ratio=.2)
+
+s.class(pca.delly$li, fac=pop(delly_gind), 
+        xax=2, yax=3, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca.delly$eig[1:50], posi = "topright", sub = "Delly total",3,2,3, ratio=.2)
+#dev.off()
+```
+
+Followed by the results for Manta - Batched data:
+```{r SV based PCA - Manta Batch, echo=FALSE}
+mantaB_mendel_vcf <- read.vcfR("inputs/pca/mantaB_mendel_target_samples.vcf")
+mantaB_vcf <- read.vcfR("inputs/pca/mantaB_target_samples.vcf")
+mantaB_mendel_gind <- vcfR2genind(mantaB_mendel_vcf)
+mantaB_gind <- vcfR2genind(mantaB_vcf)
+pop(mantaB_mendel_gind) <- delly_gind$pop
+pop(mantaB_gind) <- delly_gind$pop
+
+x.mendel.mantaB <- tab(mantaB_mendel_gind, freq=TRUE, NA.method="mean")
+x.mantaB <- tab(mantaB_gind, freq=TRUE, NA.method="mean")
+
+pca.mendel.mantaB <- dudi.pca(x.mendel.mantaB, center=T, scale = F)
+pca.mantaB <- dudi.pca(x.mantaB, center=TRUE, scale=FALSE)
+
+s.class(pca.mendel.mantaB$li, fac=pop(mantaB_mendel_gind), col=funky(15))
+#pdf("plots/mantaB_mendel.pdf")
+s.class(pca.mendel.mantaB$li, fac=pop(mantaB_mendel_gind), 
+        xax=1, yax=2, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca.mendel.mantaB$eig[1:50], posi = "topright", sub="MantaB Mendel",3,2,3, ratio=.2)
+#dev.off()
+
+s.class(pca.mantaB$li, fac=pop(mantaB_gind), col=funky(15))
+#pdf("plots/mantaB_total.pdf")
+s.class(pca.mantaB$li, fac=pop(mantaB_gind), 
+        xax=2, yax=3, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca.mantaB$eig[1:50], posi = "topright", sub="MantaB total",3,2,3, ratio=.2)
+#dev.off()
+```
+
+
+Followed by the results for Manta - Joint data:
+```{r SV based PCA - Manta Batch, echo=FALSE}
+mantaJ_mendel_vcf <- read.vcfR("inputs/pca/mantaJ_mendel_target_samples.vcf")
+mantaJ_vcf <- read.vcfR("inputs/pca/mantaJ_target_samples.vcf")
+mantaJ_mendel_gind <- vcfR2genind(mantaJ_mendel_vcf)
+mantaJ_gind <- vcfR2genind(mantaJ_vcf)
+pop(mantaJ_mendel_gind) <- delly_gind$pop
+pop(mantaJ_gind) <- delly_gind$pop
+
+x.mendel.mantaJ <- tab(mantaJ_mendel_gind, freq=TRUE, NA.method="mean")
+x.mantaJ <- tab(mantaJ_gind, freq=TRUE, NA.method="mean")
+
+pca.mendel.mantaJ <- dudi.pca(x.mendel.mantaJ, center=TRUE, scale = FALSE)
+pca.mantaJ <- dudi.pca(x.mantaJ, center=TRUE, scale=FALSE)
+
+s.class(pca.mendel.mantaJ$li, fac=pop(mantaJ_mendel_gind), col=funky(15))
+#pdf("plots/mantaJ_mendel.pdf")
+s.class(pca.mendel.mantaJ$li, fac=pop(mantaJ_mendel_gind), 
+        xax=1, yax=3, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca.mendel.mantaJ$eig[1:50], posi = "topright", sub="MantaJ Mendel",3,2,3, ratio=.2)
+#dev.off()
+
+s.class(pca.mantaJ$li, fac=pop(mantaJ_gind), col=funky(15))
+#pdf("plots/mantaJ_total.pdf")
+s.class(pca.mantaJ$li, fac=pop(mantaJ_gind), 
+        xax=2, yax=3, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca.mantaJ$eig[1:50], posi = "topright", sub="MantaJ total",3,2,3, ratio=.2)
+#dev.off()
+```
+
+And finally the results for Smoove:
+```{r SV based PCA - Manta Batch, echo=FALSE}
+smoove_mendel_vcf <- read.vcfR("inputs/pca/smoove_mendel_target_samples.vcf")
+smoove_vcf <- read.vcfR("inputs/pca/smoove_target_samples.vcf")
+smoove_mendel_gind <- vcfR2genind(smoove_mendel_vcf)
+smoove_gind <- vcfR2genind(smoove_vcf)
+pop(smoove_mendel_gind) <- delly_gind$pop
+pop(smoove_gind) <- delly_gind$pop
+
+x.mendel.smoove <- tab(smoove_mendel_gind, freq=TRUE, NA.method="mean")
+x.smoove <- tab(smoove_gind, freq=TRUE, NA.method="mean")
+
+pca.mendel.smoove <- dudi.pca(x.mendel.smoove, center=TRUE, scale = FALSE)
+pca.smoove <- dudi.pca(x.smoove, center=TRUE, scale=FALSE)
+
+s.class(pca.mendel.smoove$li, fac=pop(smoove_mendel_gind), col=funky(15))
+#pdf("plots/smoove_mendel.pdf")
+s.class(pca.mendel.smoove$li, fac=pop(smoove_mendel_gind), 
+        xax=1, yax=2, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca.mendel.smoove$eig[1:50], posi = "topright", sub="Smoove Mendel",3,2,3, ratio=.2)
+#dev.off()
+
+s.class(pca.smoove$li, fac=pop(smoove_gind), col=funky(15))
+#pdf("plots/smoove_PC1PC2.pdf")
+s.class(pca.smoove$li, fac=pop(smoove_gind), 
+        xax=1, yax=4, col=transp(funky(15),.6),
+        axesel=FALSE, cstar=0, cpoint=3)
+add.scatter.eig(pca.mantaJ$eig[1:50], posi = "topright", sub="Smoove total",3,2,3, ratio=.2)
+#dev.off()
+```
+
+Finally estimating the percent variance of PCA coordinates
+```{r PCA variance, echo=FALSE}
+perc.delly <- 100*pca.delly$eig/sum(pca.delly$eig)
+perc.mantaB <- 100*pca.mantaB$eig/sum(pca.mantaB$eig)
+perc.mantaJ <- 100*pca.mantaJ$eig/sum(pca.mantaJ$eig)
+perc.smoove <- 100*pca.smoove$eig/sum(pca.smoove$eig)
+
+perc.delly
+perc.mantaB
+perc.mantaJ
+perc.smoove
+```

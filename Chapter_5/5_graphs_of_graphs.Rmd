@@ -1,0 +1,87 @@
+---
+title: "Exploring genome graphs in the critically endangered kākāō"
+author: "Jana R. Wold"
+date: "20/03/2022"
+output:
+  html_document:
+    self_contained: false
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(Manu)
+library(tidyverse)
+
+pal <- get_pal("Kakapo")
+get_pal("Kakapo")
+print_pal(pal)
+
+setwd("G:/My Drive/Thesis Write-up and Reporting/Chapter 5 - Establishment of a pan-genome in a species of conservation concern/Chapter_Scripts/Graph_stats")
+```
+
+Ready to load input files:
+```{r load files, include=FALSE}
+depth <- read.table("inputs/chr7.depth.w5kb.tsv", header = TRUE, sep = "\t")
+tlr1_depth <- read.table("inputs/TLR1.depth.w1kb.bed", header = TRUE, sep = "\t")
+tlr2_depth <- read.table("inputs/TLR2.depth.w1kb.bed", header = TRUE, sep = "\t")
+tlr3_depth <- read.table("inputs/TLR3.depth.w1kb.bed", header = TRUE, sep = "\t")
+tlr6_depth <- read.table("inputs/TLR6.depth.w1kb.bed", header = TRUE, sep = "\t")
+
+defaultk_100kb <- read.table("inputs/chr7.depth.defaultk.100kb.w5kb.bed", header = TRUE, sep = "\t")
+
+
+ggplot(defaultk_100kb, aes( x = end, y= depth)) +
+  geom_line()
+```
+
+## Graph Depth
+
+Regions of relatively high complexity, and low in representation were inferred using depth along the graph. 
+
+```{r depth, echo=FALSE}
+#pdf("chr7_depth.pdf")
+ggplot(depth, aes(x = start, y = depth)) +
+  geom_line(aes(y = depth), color = "#7D9D33") +
+  labs(x = "Position on Chromosome 7", y = "Depth") +
+  theme_light()
+#dev.off()
+```
+
+## TLR Characteristics
+
+Here I examine the depth for toll-like receptor's 1, 2, 3 and 6. 
+
+```{r pressure, echo=FALSE}
+#pdf("TLR1_depth.pdf")
+ggplot(tlr1_depth, aes(x = start, y = depth)) +
+  geom_line(aes(y = depth), color = "#7D9D33") +
+  labs(x = "Position on toll-like receptor 1", y = "Depth") +
+  ylim(6,9) +
+  theme_light()
+#dev.off()
+
+#pdf("TLR2_depth.pdf")
+ggplot(tlr2_depth, aes(x = start, y = depth)) +
+  geom_line(aes(y = depth), color = "#7D9D33") +
+  labs(x = "Position on toll-like receptor 2", y = "Depth") +
+  ylim(6,9) +
+  theme_light()
+#dev.off()
+
+#pdf("TLR3_depth.pdf")
+ggplot(tlr3_depth, aes(x = start, y = depth)) +
+  geom_line(aes(y = depth), color = "#7D9D33") +
+  labs(x = "Position on toll-like receptor 3", y = "Depth") +
+  ylim(6,9) +
+  theme_light()
+#dev.off()
+
+#pdf("TLR6_depth.pdf")
+ggplot(tlr6_depth, aes(x = start, y = depth)) +
+  geom_line(aes(y = depth), color = "#7D9D33") +
+  labs(x = "Position on toll-like receptor 6", y = "Depth") +
+  ylim(6,9) +
+  theme_light()
+#dev.off()
+```
+

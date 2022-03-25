@@ -90,7 +90,6 @@ ggplot(noPrune_het, aes(x = Population, y = Fraction_Heto, fill = Population)) +
     theme_light()
 
 ```
-
 ### Pairwise Fst
 ```{r Pairwise Fst, echo=FALSE}
 Fst <- genet.dist(maf_gind, method = "WC84")
@@ -114,7 +113,6 @@ delly_Fst %>% round(digits = 4)
 smoove_Fst <- genet.dist(smoove_gind, method = "WC84")
 smoove_Fst %>% round(digits = 4)
 ```
-
 ### Plotting Pixy Outputs
 ```{r exploring pixy, echo=FALSE}
 inp<-read.table("pixy/100kb_window/total/total_MAF_100kb_window_dxy.txt",sep="\t",header=T)
@@ -209,7 +207,7 @@ pixy_to_long <- function(pixy_files){
 
 }
 
-pixy_folder <- "pixy/100kb_window/Pruned_MAF/AU"
+pixy_folder <- "pixy/100kb_window/Pruned_MAF/total/"
 pixy_files <- list.files(pixy_folder, full.names = TRUE)
 pixy_df <-pixy_to_long(pixy_files)
 
@@ -281,6 +279,35 @@ pixy_df %>%
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0), limits = c(0,NA))
 #dev.off()
+```
+### Nucleotide diversity correlations with Fst
+```{r pi versus DXY, echo=FALSE}
+pixy_pi <- read.table("pixy/100kb_window/Pruned_MAF/total/total_MAF_100kb_window_pi.txt", header = TRUE, sep = "\t")
+pixy_dxy <- read.table("pixy/100kb_window/Pruned_MAF/total/total_MAF_100kb_window_dxy.txt", header = TRUE, sep = "\t")
+
+nuc_compare <- cbind(pixy_pi, pixy_dxy[c("avg_dxy")])
+
+#png("plots/nucleotide_diversity_relationship_AU.png")
+ggplot(subset(nuc_compare, pop %in% c("AU")), aes(x = avg_dxy, y = avg_pi)) +
+  geom_point() +
+  labs(title = "Austrlian fairy tern pi and DXY") +
+  theme_light()
+#dev.off()
+
+#png("plots/nucleotide_diversity_relationship_TI.png")
+ggplot(subset(nuc_compare, pop %in% c("TI")), aes(x = avg_dxy, y = avg_pi)) +
+  geom_point() +
+  labs(title = "Tara iti pi and DXY")
+  theme_light()
+#dev.off()
+  
+ggplot(nuc_compare, aes(x = pop, y= avg_pi)) +
+  geom_violin() +
+  theme_light()
+ggplot(nuc_compare, aes(x = pop, y= avg_dxy)) +
+  geom_violin() +
+  theme_light()
+
 ```
 ## Population Structure
 ### Unpruned SNP PCA
