@@ -3,7 +3,7 @@
 First did approximate alignment of contigs and found those that aligned to autosome 1.
 ```
 data=/kakapo-data/ONT/assembly/
-for male in Bill Blades Gulliver Rangi Sass
+for male in B C F I J
     do
     echo "Finding alignments to autosome 1 for ${male}..."
     wfmash --threads 24 -m ${mref} ${data}medaka/racon_polished/${male}/consensus.fasta > ${data}wfmash/${male}_raconMedaka_approx.paf
@@ -13,7 +13,7 @@ for male in Bill Blades Gulliver Rangi Sass
     ./faSomeRecords ${data}medaka/racon_polished/${male}/consensus.fasta ${data}wfmash/${male}_raconMedaka_chr7.txt ${data}chr7_scaffolds/${male}_raconMedaka_chr7.fa
     ./faSomeRecords ${data}NextPolish/racon_NextPolish/${male}_polished/genome.nextpolish.fasta ${data}wfmash/${male}_raconNextpolish_chr7.txt ${data}chr7_scaffolds/${male}_raconNextpolish_chr7.fa
 done &
-for female in C1 C2 Kuia Margaret-Maree Sue
+for female in D E G H L
 do
     echo "Finding alignments to autosome 1 for ${female}..."
     wfmash --threads 24 -m ${fref} ${data}medaka/racon_polished/${female}/consensus.fasta > ${data}wfmash/${female}_raconMedaka_approx.paf
@@ -29,7 +29,7 @@ Here I used whole-genome alignments of the scaffolds identified as likely belong
 Assembly stats specific to chromosome 7 specific contigs were estimated with Quast.
 ```
 jane7=${data}chr7_assembly_stats/fastas/Jane_chr7.fa
-for indiv in Bill Blades C1 C2 Gulliver Margaret-Maree Sue Jane
+for indiv in B C D C2 F H L Jane
     do
     echo "Estimating chromosome 7 assembly stats for ${indiv}..."
     quast -t 24 -o ${data}chr7_assembly_stats/quast/${indiv} -r $jane7 ${data}chr7_assembly_stats/fastas/${indiv}.fa
@@ -39,13 +39,13 @@ for indiv in Bill Blades C1 C2 Gulliver Margaret-Maree Sue Jane
 Distance of each query sequence to the reference was estimated using [mash](https://mash.readthedocs.io/en/latest/index.html) v2.3.
 ```
 mash dist -p 24 ${data}assembly/chr1_racon_scaffolds/Jane_chr1.fa \
-    ${data}assembly/chr7_racon_scaffolds/Bill_chr7.fa \
-    ${data}assembly/chr7_racon_scaffolds/Blades_chr7.fa \
-    ${data}assembly/chr7_racon_scaffolds/C1_chr7.fa \
-    ${data}assembly/chr7_racon_scaffolds/C2_chr7.fa \
-    ${data}assembly/chr7_racon_scaffolds/Gulliver_chr7.fa \
-    ${data}assembly/chr7_racon_scaffolds/Margaret-Maree_racon_chr7.fa \
-    ${data}assembly/chr7_racon_scaffolds/Sue_racon_chr7.fa 
+    ${data}assembly/chr7_racon_scaffolds/B_chr7.fa \
+    ${data}assembly/chr7_racon_scaffolds/C_chr7.fa \
+    ${data}assembly/chr7_racon_scaffolds/D_chr7.fa \
+    ${data}assembly/chr7_racon_scaffolds/E_chr7.fa \
+    ${data}assembly/chr7_racon_scaffolds/F_chr7.fa \
+    ${data}assembly/chr7_racon_scaffolds/H_racon_chr7.fa \
+    ${data}assembly/chr7_racon_scaffolds/L_racon_chr7.fa 
 ```
 The number of matching hashes for the racon & Medaka polished assemblies varied from 524 - 971 out of 1000, and the mash-distance varied from 0.0178312 - 0.000705841. Average genome divergence based off the MASH distances was 0.0052838601.
 
@@ -57,7 +57,7 @@ For pangenome graph construction assembled contigs for all samples were named in
 
 Files were then concatenated into a single fasta and a graph constructed with [pggb](https://github.com/pangenome/pggb) v0.2.0.
 ```
-for indiv in Bill Blades C1 C2 Gulliver Jane Margaret-Maree Sue
+for indiv in B C D E F Jane H L
     do
     echo ${indiv}
     cat chr_7/${indiv}_racon_chr7.fa >> chr_7/chr7_filtered.fa

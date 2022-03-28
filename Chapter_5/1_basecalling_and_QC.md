@@ -30,7 +30,7 @@ conda deactivate nanofilt
 ```
 ## Read statistics
 ```
-for indiv in Bella Bill Blades C1 C2 Gulliver Kuia Margaret-Maree Rangi Sass Smoko Sue
+for indiv in A B C D E F G H I J K L
     do
     echo "Running NanoPlot for ${indiv}..."
      NanoPlot -t 24 -o ${data}NanoPlot/$indiv \

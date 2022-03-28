@@ -614,7 +614,7 @@ add.scatter.eig(pca.mendel.smoove$eig[1:50], posi = "topright", sub="Smoove Mend
 #dev.off()
 
 s.class(pca.smoove$li, fac=pop(smoove_gind), col=funky(15))
-#pdf("plots/smoove_PC1PC2.pdf")
+#pdf("plots/smoove_PDPC2.pdf")
 s.class(pca.smoove$li, fac=pop(smoove_gind), 
         xax=1, yax=4, col=transp(funky(15),.6),
         axesel=FALSE, cstar=0, cpoint=3)

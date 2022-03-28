@@ -109,8 +109,8 @@ bcftools query -i '(MERR / N_PASS(GT!="mis")) <=0.2' -f '%CHROM\t%POS\t%INFO/END
 ```
 mkdir -p ${out}lineage_comparisons
 
-bcftools view -s Richard_Henry ${out}10_delly_genofilter_trio.vcf | bcftools view -i 'GT=="alt" & GT!="mis"' -O v -o ${out}lineage_comparisons/RH_variants.vcf
-bcftools view -s ^Richard_Henry,Kuia,Gulliver,Sinbad,Adelaide,Henry,Marian,Gertrude ${out}10_delly_genofilter_trio.vcf | bcftools view -i 'GT=="alt" & GT!="mis"' -O v -o ${out}lineage_comparisons/SI_variants.vcf
+bcftools view -s M ${out}10_delly_genofilter_trio.vcf | bcftools view -i 'GT=="alt" & GT!="mis"' -O v -o ${out}lineage_comparisons/RH_variants.vcf
+bcftools view -s ^M,G,F,R,N,P,O,S ${out}10_delly_genofilter_trio.vcf | bcftools view -i 'GT=="alt" & GT!="mis"' -O v -o ${out}lineage_comparisons/SI_variants.vcf
 
 tabix ${out}lineage_comparisons/RH_variants.vcf
 tabix ${out}lineage_comparisons/SI_variants.vcf

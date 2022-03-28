@@ -1,5 +1,5 @@
 # Challenges and Opportunities for Integrating Structural Variants into Conservation Genomics
-Presented here are the scripts used for data analyses in each data chapter of my thesis. Within each directory is a brief overview of chapter contents and details about each of the tools used. 
+Presented here are the scripts used for data analyses in each data chapter of my thesis. Within each directory is a brief overview of chapter contents and details about each of the tools used. In recognition of Indigenous Data sovereignty of data related to culturally significant species, any sample IDs have been redacted from these scripts.
 
 For a brief outline of chapter contents:
 
@@ -14,4 +14,4 @@ Long-read Oxford Nanopore sequence data was used for *de novo* genome assembly. 
 
 ### Publications
 Publications associated with this thesis include:
-Published Perspective in the *Molecular Ecology* Special Issue: [Whole-genome sequencing in molecular ecology 2021](https://onlinelibrary.wiley.com/doi/full/10.1111/mec.16141).
+Published Perspective in the *Molecular Ecology* Special Isl: [Whole-genome sequencing in molecular ecology 2021](https://onlinelibrary.wiley.com/doi/full/10.1111/mec.16141).

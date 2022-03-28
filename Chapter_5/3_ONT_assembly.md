@@ -30,13 +30,13 @@ mref=/kakapo-data/References/kakapo_no_Wchromosome.fa
 fref=/kakapo-data/References/kakapo_full_ref.fa
 echo "Running first round of BUSCO and quast checks..."
 cd ${data}assembly/busco
-for male in Bill Blades Gulliver Rangi Sass Smoko
+for male in B C F J K
        do
        base=$(basename $assembly)
        quast -t 24 -o ${data}assembly/quast/initial_assemblies/${male} -r $mref ${data}assembly/initial_assemblies/${male}.fasta
        busco --in ${data}assembly/initial_assemblies/${male}.fasta --out ${male}_initial --mode genome --lineage_dataset $aves
 done
-for female in Bella C1 C2 Kuia Margaret-Maree Sue
+for female in A D E G H L
     echo "Running BUSCO and quast for ${female}..."
     quast -t 24 -o ${data}assembly/quast/initial_assemblies/${female} -r $fref ${data}assembly/initial_assemblies/${female}.fasta
     busco --in ${data}assembly/initial_assemblies/${female}.fasta --out ${female}_initial --mode genome --lineage_dataset $aves
@@ -44,7 +44,7 @@ done
 ```
 ## Initial polishing
 Polishing for each assembly was conducted using [NextPolish](https://github.com/Nextomics/NextPolish) v1.4.0 and [racon]() v1.4.20. 
-Both short-read and long read data were used in polishing with NextPolish for all samples excluding C1 and C2. Only long-read data was used with racon.
+Both short-read and long read data were used in polishing with NextPolish for all samples excluding D and E. Only long-read data was used with racon.
 
 Config files for each individual were generated in accordance with these instructions. Upon completion of the initial round of polishing, assembly quality was assessed once more with BUSCO and quast.
 
@@ -53,7 +53,7 @@ Polishing was also conducted with [NextPolish](https://github.com/Nextomics/Next
 ```
 mkdir -p ${data}assembly/NextPolish/cfgs
 
-for indiv in Bill Blades Gulliver Kuia Margaret-Maree Rangi Sass Sue
+for indiv in B C F G H I J L
     do
     ls ${data}trimmed/${indiv}_q10_5kbtrim.fastq.gz > ${data}assembly/NextPolish/cfg/${indiv}_lgs.fofn
     ls ${data}assembly/short-reads/${indiv}* > ${data}assembly/NextPolish/cfg/${indiv}_sgs.fofn
@@ -64,7 +64,7 @@ Finally, polishing with Racon was run as per:
 ```
 mkdir -p ${data}assembly/racon{1,2}/{alignments,polishing}
 
-for samp in Bill Blades C1 C2 Gulliver Kuia Margaret-Maree Rangi Sass Sue
+for samp in B C D E F G H I J L
     do
     echo "Aligning reads with minimap for ${samp}..."
     minimap2 -ax map-ont ${data}assembly/initial_assemblies/${samp}.fasta ${data}trimmed/${samp}_q10_5kbtrim.fastq.gz > ${data}assembly/racon/racon1/alignments/${samp}.sam
@@ -78,21 +78,21 @@ done
 Quality of these polishing steps were assessed with:
 ```
 cd ${data}assembly/
-for indiv in Bill Blades C1 C2 Gulliver Kuia Margaret-Maree Rangi Sass Sue
+for indiv in B C D E F G H I J L
     do
     echo "Running BUSCO v5.3.0 for $indiv..."
     busco --in racon/racon1/polished_assemblies/${indiv}_racon1.fasta --out busco/busco_racon1/${indiv} --mode genome --lineage_dataset $aves
     busco --in racon/racon2/polished_assemblies/${indiv}_racon2.fasta --out busco/busco_racon2/${indiv} --mode genome --lineage_dataset $aves
     busco --in NextPolish/${indiv}_polished/genome.nextpolish.fasta --out busco/busco_NextPolish1/${indiv} --mode genome --lineage_dataset $aves
 done &
-for female in C1 C2 Kuia Margaret-Maree Sue
+for female in D E G H L
     do
     echo "Running QUAST for ${female}..."
     quast -t 24 -o quast/racon1/${female} -r $fref racon/racon1/${female}.fasta
     quast -t 24 -o quast/racon2/${female} -r $fref racon/racon2/${female}.fasta
     quast -t 24 -o quast/NextPolish1/${female} -r $fref NextPolish/${female}_polished/genome.nextpolish.fasta
 done &
-for male in Bill Blades Gulliver Rangi Sass
+for male in B C F I J
     do
     quast -t 24 -o quast/2_racon1/${male} -r $mref racon/racon1/${male}.fasta 
     quast -t 24 -o quast/3_racon2/${male} -r $mref racon/racon2/${male}.fasta
@@ -102,21 +102,21 @@ done
 ## Final polishing
 A final round of polishing was conducted with [medaka](https://github.com/nanoporetech/medaka) v1.5.0.
 ```
-for indiv in Bill Blades C1 C2 Gulliver Kuia Margaret-Maree Rangi Sass Sue
+for indiv in B C D E F G H I J L
     do
     echo "Running MEDAKA for ${indiv}...."
     medaka_consensus -i ../trimmed/${indiv}_q10_5kbtrim.fastq.gz -d racon/racon2/polished_assemblies/${indiv}_racon2.fasta -o medaka/racon_polished/${indiv} -t 48 -m r941_min_sup_g507
     medaka_consensus -i ../trimmed/T{indiv}_q10_5kbtim.fastq.gz -d NextPolish/${indiv}_polished/genome.nextpolish.fasta -o medaka/NextPolish_polished/${indiv}
 done
 
-for male in Bill Blades Gulliver Rangi Sass
+for male in B C F I J
     do
     echo "Running QUAST for ${indiv}...."
     quast -t 24 -o quast/4_medaka_racon/${male} -r ${mref} medaka/racon_polished/${male}/consensus.fasta &
     quast -t 24 -o quast/4_medaka_NextPolish/${male} -r ${mref} medaka/NextPolish_polished/${male}/consensus.fasta
     wait
 done
-for female in C1 C2 Kuia Margaret-Maree Sue
+for female in D E G H L
     do
     quast -t 24 -o quast/4_medaka_racon/${female} -r ${fref} medaka/racon_polished/${female}/consensus.fasta &
     quast -t 24 -o quast/4_medaka_NextPolish/${female} -r ${fref} medaka/NextPolish_polished/${female}/consensus.fasta
@@ -124,7 +124,7 @@ for female in C1 C2 Kuia Margaret-Maree Sue
 done
 quast -t 24 -o quast/Jane ${fref}
 wait
-for indiv in Bill Blades C1 C2 Gulliver Kuia Margaret-Maree Rangi Sass Sue
+for indiv in B C D E F G H I J L
     do
     busco --in medaka/racon_polished/${indiv}/consensus.fasta --out busco/busco_racon/${indiv} --cpu 24 --mode genome --lineage_dataset ${aves} &
     busco --in medaka/NextPolish_polished/${indiv}/consensus.fasta --out busco/busco_NextPolish/${indiv} --cpu 24 --mode genome --lineage_dataset ${aves}

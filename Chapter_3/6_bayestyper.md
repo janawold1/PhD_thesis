@@ -84,7 +84,7 @@ done
 ```
 ## Running KMC and makeBloom
 It is really easy to over-resource KMC, that is that if you provide it with too
-much memory/threads the program freezes. I have had the best luck with 24Gb RAM and 48 threads as per below. It also found that I needed to run KMC one individual at a time. I had a lot of issues when I attempted to run multiple individuals at once since KMC uses the same temp file naming convention each time it runs. Basically temp files from different runs were overwriting each other and I needed to designate different locations for the temp files.
+much memory/threads the program freezes. I have had the best luck with 24Gb RAM and 48 threads as per below. It also found that I needed to run KMC one individual at a time. I had a lot of isls when I attempted to run multiple individuals at once since KMC uses the same temp file naming convention each time it runs. Basically temp files from different runs were overwriting each other and I needed to designate different locations for the temp files.
 ```
 ulimit -n 2048
 for mkmc in ${male}batch{01..14}/*_nodup.bam
@@ -325,14 +325,14 @@ done < /kakapo-data/metadata/generations.tsv
 ```
 mkdir -p ${out}bayestyper/lineage_{batch,joint}_comparisons
 
-bcftools view -s Richard_Henry /kakapo-data/bwa/manta/raw_variants/batch_total.vcf.gz | \
+bcftools view -s M /kakapo-data/bwa/manta/raw_variants/batch_total.vcf.gz | \
     bcftools view -i 'GT=="alt"' -O z -o ${out}bayestyper/lineage_batch_comparisons/unfiltered/RH_unfiltered_variants.vcf.gz
-bcftools view -s Richard_Henry /kakapo-data/bwa/manta/raw_variants/joint_total.vcf.gz | \
+bcftools view -s M /kakapo-data/bwa/manta/raw_variants/joint_total.vcf.gz | \
     bcftools view -i 'GT=="alt"' -O z -o ${out}bayestyper/lineage_joint_comparisons/unfiltered/RH_unfiltered_variants.vcf.gz
 
-bcftools view -s ^Richard_Henry,Kuia,Gulliver,Sinbad,Adelaide,Henry,Marian,Gertrude /kakapo-data/bwa/manta/raw_variants/batch_total.vcf.gz |\
+bcftools view -s ^M,G,F,R,N,P,O,S /kakapo-data/bwa/manta/raw_variants/batch_total.vcf.gz |\
     bcftools view -i 'GT=="alt"' -O z -o ${out}bayestyper/lineage_batch_comparisons/unfiltered/SI_unfiltered_variants.vcf.gz
-bcftools view -s ^Richard_Henry,Kuia,Gulliver,Sinbad,Adelaide,Henry,Marian,Gertrude /kakapo-data/bwa/manta/raw_variants/joint_total.vcf.gz |\
+bcftools view -s ^M,G,F,R,N,P,O,S /kakapo-data/bwa/manta/raw_variants/joint_total.vcf.gz |\
     bcftools view -i 'GT=="alt"' -O z -o ${out}bayestyper/lineage_joint_comparisons/unfiltered/SI_unfiltered_variants.vcf.gz
 
 bcftools index ${out}bayestyper/lineage_batch_comparisons/unfiltered/RH_unfiltered_variants.vcf.gz

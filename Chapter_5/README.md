@@ -1,5 +1,5 @@
 # Chapter 5: The promise of genome graphs as a consdervation genomics resource for the critically endangered kākāpō (*Strigops habroptilus*)
-Here are the steps I used for *de novo* genome assembly and graph contstruction in the critically endangered kākāpō. Here, we specifically examined the graph topology of toll-like receptors found on this chromosome.
+Here are the steps I used for *de novo* genome assembly and graph contstruction in the critically endangered kākāpō. Here, we specifically examined the graph topology of toll-like receptors found on this chromosome.  
 
 ## 1 ONT base calling and read quality statistics
 Oxford Nanopore long-read (ONT) data were used in this chapter. Raw reads were base called using Guppy v6.0.1. Basecalled reads were assessed using [MinIONQC](https://github.com/roblanf/minion_qc) v1.4.1. Adaptor trimming was conducted with [porechop](https://github.com/rrwick/Porechop) v0.2.4, lambda DNA removed with [NanoLyse](https://github.com/wdecoster/nanolyse) v1.2.0 and reads filtered for minimum quality (Q-score) and length using [NanoFilt](https://github.com/wdecoster/nanofilt) v2.8.0. Overall reads were visualised with [NanoPlot](https://github.com/wdecoster/NanoPlot) v1.39.0 before and after trimming.
