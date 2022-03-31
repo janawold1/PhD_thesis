@@ -282,30 +282,37 @@ pixy_df %>%
 ```
 ### Nucleotide diversity correlations with Fst
 ```{r pi versus DXY, echo=FALSE}
-pixy_pi <- read.table("pixy/100kb_window/Pruned_MAF/total/total_MAF_100kb_window_pi.txt", header = TRUE, sep = "\t")
+AU_pi <- read.table("pixy/100kb_window/Pruned_MAF/total/AU_pi.txt", header = TRUE, sep = "\t")
+TI_pi <- read.table("pixy/100kb_window/Pruned_MAF/total/TI_pi.txt", header = TRUE, sep = "\t")
+
 pixy_dxy <- read.table("pixy/100kb_window/Pruned_MAF/total/total_MAF_100kb_window_dxy.txt", header = TRUE, sep = "\t")
 
-nuc_compare <- cbind(pixy_pi, pixy_dxy[c("avg_dxy")])
+AU_nuc <- cbind(AU_pi, pixy_dxy[c("avg_dxy")])
+TI_nuc <- cbind(TI_pi, pixy_dxy[c("avg_dxy")])
 
 #png("plots/nucleotide_diversity_relationship_AU.png")
-ggplot(subset(nuc_compare, pop %in% c("AU")), aes(x = avg_dxy, y = avg_pi)) +
+ggplot(AU_nuc, aes(x = avg_dxy, y = avg_pi)) +
   geom_point() +
-  labs(title = "Austrlian fairy tern pi and DXY") +
+  ylim(0,0.05) +
+  labs(title = "Australian fairy tern pi and DXY") +
   theme_light()
 #dev.off()
 
 #png("plots/nucleotide_diversity_relationship_TI.png")
-ggplot(subset(nuc_compare, pop %in% c("TI")), aes(x = avg_dxy, y = avg_pi)) +
+ggplot(TI_nuc, aes(x = avg_dxy, y = avg_pi)) +
   geom_point() +
-  labs(title = "Tara iti pi and DXY")
+  ylim(0,0.05) +
+  labs(title = "Tara iti pi and DXY") +
   theme_light()
 #dev.off()
   
-ggplot(nuc_compare, aes(x = pop, y= avg_pi)) +
+ggplot(AU_nuc, aes(x = pop, y= avg_pi)) +
   geom_violin() +
+  ylim(0, 0.05)
   theme_light()
-ggplot(nuc_compare, aes(x = pop, y= avg_dxy)) +
+ggplot(TI_nuc, aes(x = pop, y= avg_dxy)) +
   geom_violin() +
+  ylim(0,0.05) +
   theme_light()
 
 ```
