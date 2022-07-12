@@ -46,7 +46,7 @@ grep AU ${data}pixy/total_MAF_pi.txt | awk '{diff+=$7}; {comp+=$8}; END {print d
 grep TI ${data}pixy/total_MAF_pi.txt | awk '{diff+=$7}; {comp+=$8}; END {print diff/comp}'
 ```
 ## Running ADMIXTURE
-To run ADMIXTURE, the VCFs must be converted to plink format (I chosed the binary .bed format). For this Chromosome scaffold names were converted as per:
+To run ADMIXTURE, the VCFs must be converted to plink format (I choseti the binary .bed format). For this Chromosome scaffold names were converted as per:
 ```
 gunzip -c ${data}SNP_filtering_trial/global_MAF.vcf.gz | sed 's/Super_scaffold_//g' > ${data}admixture/global_MAF.vcf
 

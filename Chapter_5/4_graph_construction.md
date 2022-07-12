@@ -1,6 +1,6 @@
 # Genome Graph Construction
 ## Identifying autosome 7 contigs
-First did approximate alignment of contigs and found those that aligned to autosome 1.
+First did approximate alignment of contigs and found those that aligned to autosome 7.
 ```
 data=/kakapo-data/ONT/assembly/
 for male in B C F I J
@@ -13,6 +13,7 @@ for male in B C F I J
     ./faSomeRecords ${data}medaka/racon_polished/${male}/consensus.fasta ${data}wfmash/${male}_raconMedaka_chr7.txt ${data}chr7_scaffolds/${male}_raconMedaka_chr7.fa
     ./faSomeRecords ${data}NextPolish/racon_NextPolish/${male}_polished/genome.nextpolish.fasta ${data}wfmash/${male}_raconNextpolish_chr7.txt ${data}chr7_scaffolds/${male}_raconNextpolish_chr7.fa
 done &
+
 for female in D E G H L
 do
     echo "Finding alignments to autosome 1 for ${female}..."
