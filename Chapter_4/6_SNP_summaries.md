@@ -87,8 +87,8 @@ dev.off()
 ## SNP summaries
 Total variable, private and fixed SNPs as well as to number of invariant sites per population and those shared between the two:
 ```
-bcftools view -S ${data}AU_samples.tsv global_MAF_noPrune.vcf.gz | bcftools view -H -i 'GT!="alt"' | wc -l # Total SNPs in AU in the SNP file
-bcftools view -S ${data}TI_samples.tsv global_MAF_noPrune.vcf.gz | bcftools view -H -i 'GT!="alt"' | wc -l # Total SNPs in TI in the SNP file
+bcftools view -S ${data}AU_samples.tsv global_MAF_noPrune.vcf.gz | bcftools view -H -i 'GT="alt"' | wc -l # Total SNPs in AU in the SNP file
+bcftools view -S ${data}TI_samples.tsv global_MAF_noPrune.vcf.gz | bcftools view -H -i 'GT="alt"' | wc -l # Total SNPs in TI in the SNP file
 
 bcftools view -S ${data}AU_samples.tsv global_MAF_noPrune.vcf.gz | bcftools view -H -i 'N_PASS(GT=="RR")=15' | wc -l # Total fixed SNPs in AU
 bcftools view -S ${data}TI_samples.tsv global_MAF_noPrune.vcf.gz | bcftools view -H -i 'N_PASS(GT=="RR")=11' | wc -l # Total fixed SNPs in TI
