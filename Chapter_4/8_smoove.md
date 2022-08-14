@@ -43,7 +43,9 @@ smoove paste --name ${out}02_fairy_tern.genos ${data}genotypes/*.vcf.gz
 ## SV Filtering
 Finally, SVs were sorted into population specific data sets, filtered to include variable SVs only and then the number of private and shared variants were identified. 
 ```
-bcftools view -t chroms -i '(SVTYPE = "DEL" & FMT/DHFFC[0-25] < 0.7) | (SVTYPE = "DUP" & FMT/DHBFC[0-25] > 1.3) | (SVTYPE = "INV")' \
+chroms=/data/metadata/common_tern_autosomes.bed
+
+bcftools view -t $chroms -i '(SVTYPE = "DEL" & FMT/DHFFC[0-25] < 0.7) | (SVTYPE = "DUP" & FMT/DHBFC[0-25] > 1.3) | (SVTYPE = "INV")' \
     -O z -o ${out}03_fairy_tern_SVfiltered.vcf.gz ${out}02_fairy_tern.genos.smoove.square.vcf.gz
 
 bcftools view -i 'N_PASS(GT="mis")=0' -O ${out}04_fairy_tern_filtered_missing.vcf.gz ${out}03_fairy_tern_SVfiltered.vcf.gz
