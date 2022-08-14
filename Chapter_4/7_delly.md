@@ -53,14 +53,13 @@ delly filter -f germline --pass -m 50 -o ${out}04_fairy_tern_minSize50bp_filtere
 delly filter -f germline --pass -m 300 -o ${out}05_fairy_tern_minSize300bp_filtered.bcf \
 	${out}02_fairy_tern_genotypes.bcf
 
-bcfools view -t $target -i '(SVTYPE = "INS")' \
-	-O b -o ${out}INS.bcf \
+bcfools view -t $target -i '(SVTYPE = "INS")' -O b -o ${out}INS.bcf \
 	${out}03_fairy_tern_germline_filtered.bcf
-bcftools view -t $target -i '(SVTYPE = "DEL")' \
-    -O b -o ${out}DEL.bcf \
+
+bcftools view -t $target -i '(SVTYPE = "DEL")' -O b -o ${out}DEL.bcf \
 	${out}04_fairy_tern_minSize50bp_filtered.bcf
-bcftools view -t $target -i '(SVTYPE = "INV" | SVTYPE = "DUP")' \
-    -O b -o ${out}INV_DUP.bcf \
+
+bcftools view -t $target -i '(SVTYPE = "INV" | SVTYPE = "DUP")' -O b -o ${out}INV_DUP.bcf \
 	${out}05_fairy_tern_minSize300bp_filtered.bcf
 
 bcftools index ${out}INS.bcf

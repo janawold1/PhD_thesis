@@ -24,7 +24,7 @@ done
 wait
 ```
 ## Merging variant calls and genotyping output
-Called variants were then merged and genotyped. 
+Called variants were then merged and genotyped.
 ```
 echo "Merging all called variants..."
 smoove merge --name fairy_tern -f ${ref} --outdir ${out} ${out}SV_calls/QC_pass/*.vcf.gz
