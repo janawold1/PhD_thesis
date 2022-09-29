@@ -1,5 +1,5 @@
 # Runthrough of the BayesTyper software package
-BayesTyper is a powerful baysian based genotyping program. However, one draw back is that it is computationally intensive and has multiple intermediate steps to navigate. 
+BayesTyper is a powerful baysian based genotyping program. However, one draw back is that it is computationally intensive and has multiple intermediate steps to navigate.
 
 Below I outline of how I filtered the raw Manta SV calls for genotyping with BayesTyper, create kmer counts, cluster variant kmers and finally genotype variants.  
 

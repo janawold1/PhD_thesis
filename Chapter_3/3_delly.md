@@ -33,7 +33,7 @@ done
 wait
 printf "\nMerging SV sites...\n"
 delly merge -o ${out}kakapo_bwa_delly_sites.bcf ${out}SV_calls_male/*.bcf ${out}SV_calls_female/*.bcf
-delly merge -o ${out}kakapo_bwa_delly_minSize300bp_sites.bcf -m 300 ${out}SV_calls_male/*.bcf ${out}SV_calls_female/*.bcf
+
 ```
 ### SV genotyping
 ```
@@ -45,7 +45,6 @@ for i in {01..14}
                mbase=$(basename ${mbam} _markdup.bam)
                printf "\nRunning Delly genotyping for ${mbase}..."
                delly call -g ${ref} -v ${out}bwa_delly_sites.bcf -o ${out}genotype/${mbase}.geno.bcf ${mbam}
-               delly call -g ${ref} -v ${out}bwa_delly_minSize300bp_sites.bcf -o ${out}genotype/${mbase}.geno.minsize.bcf ${mbam}
        done &
 done
 for j in {01..11}
@@ -54,8 +53,7 @@ for j in {01..11}
                 do
                 fbase=$(basename ${fbam} _markdup.bam)
                 printf "\nRunning Delly genotyping for ${fbase}...\n"
-                delly call -g ${ref} -v ${out}bwa_delly_minSize300bp_sites.bcf -o ${out}genotype/${fbase}.geno.minsize.bcf ${fbam}
-               delly call -g ${ref} -v ${out}bwa_delly_sites.bcf -o ${out}genotype/${fbase}.geno.bcf ${fbam}
+                delly call -g ${ref} -v ${out}bwa_delly_sites.bcf -o ${out}genotype/${fbase}.geno.bcf ${fbam}
         done &
 done
 wait
@@ -63,9 +61,7 @@ wait
 ### SV filtering 
 ```
 bcftools merge -m id -O b -o ${out}01_bwa_delly_genotypes.bcf --threads 24 ${out}genotype/*geno.bcf # Used for unfiltered SV stats 
-#bcftools merge -m id -O b -o ${out}bwa_delly_minsize_genotypes.bcf --threads 24 ${out}genotype/*.minsize.bcf
 tabix ${out}01_bwa_delly_genotypes.bcf
-#tabix ${out}bwa_delly_minsize_genotypes.bcf
 
 delly filter -f germline -p -m 50 -o ${out}02_bwa_delly_germline_minimum50bp.bcf ${out}01_bwa_delly_genotypes.bcf 
 delly filter -f germline -p -m 300 -o ${out}03_bwa_delly_germline_minimum300bp.bcf ${out}01_bwa_delly_genotypes.bcf
