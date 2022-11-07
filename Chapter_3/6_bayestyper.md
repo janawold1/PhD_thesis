@@ -15,10 +15,10 @@ out=/kakapo-data/bwa/manta/bayestyper/
 raw_data=/kakapo-data/bwa/manta/raw_variants/
 ref=/kakapo-data/References/kakapo_full_ref.fa
 trio=/kakapo-data/metadata/sample_trios.csv
-````
+```
 
 ## Merging sex-specific variant calls and batched calls for SV genotyping
-Candidate SVs were called for two Manta data sets 1) the Joint data set; and 2) the Batched data set. 
+Candidate SVs were called for two Manta data sets 1) the Joint data set; and 2) the Batched data set.
 
 ```
 bcftools merge -m all -O z -o ${raw_data}joint_total.vcf.gz \
