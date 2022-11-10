@@ -15,7 +15,7 @@ do
         ${data}nodup_bam/${base}.fixmate.bam
     samtools sort -@ 8 -o ${data}nodup_bam/${base}.fixmate.sorted.bam \
         ${data}nodup_bam/${base}.fixmate.bam
-    samtools nodup -@ 8 ${data}nodup_bam/${base}.fixmate.sorted.bam \
+    samtools markdup -r -@ 8 ${data}nodup_bam/${base}.fixmate.sorted.bam \
         ${data}nodup_bam/${base}_nodup.bam
     samtools stats ${bam} > ${data}nodup_bam_stats/${base}.stats
 done
