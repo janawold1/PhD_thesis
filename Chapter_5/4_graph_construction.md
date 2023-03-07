@@ -50,8 +50,6 @@ mash dist -p 24 ${data}assembly/chr1_racon_scaffolds/Jane_chr1.fa \
 ```
 The number of matching hashes for the racon & Medaka polished assemblies varied from 524 - 971 out of 1000, and the mash-distance varied from 0.0178312 - 0.000705841. Average genome divergence based off the MASH distances was 0.0052838601.
 
-In contrast, the number of matching hashes for the racon & Medaka polished assemblies varied from 524 - 971 out of 1000, and the mash-distance varied from 0.0178312 - 0.000705841. Average genome divergence based off the MASH distances was 0.0052838601.
-
 ## Running PGGB
 For pangenome graph construction assembled contigs for all samples were named in accordance with the naming convention:
 <sample_name>#<contig_ID>
